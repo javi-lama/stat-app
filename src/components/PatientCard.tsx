@@ -29,28 +29,13 @@ const getTaskIcon = (type: string) => {
 };
 
 const PatientCard: React.FC<PatientCardProps> = ({
-    // We need patient ID for diagnosis update, but props currently only map UI fields.
-    // DashboardPreview maps `id` to `key` but not a prop. 
-    // We need to update `PatientCardProps` to include `patientId`?
-    // Wait, the prompt implies using `api.updatePatientDiagnosis(patientId, ...)`
-    // I need `patientId` passed as prop. 
-    // I will assume `patientId` is available or I should add it.
-    // DashboardPreview uses: `key={patient.id} bedNumber={patient.bed_number} ...`
-    // It does NOT pass `id` or `patientId`. 
-    // I will add `patientId` to props in this file and assume caller will be updated or I update it blindly?
-    // "Actua como un Senior CS...". Identifying missing props is key.
-    // I will add `patientId` to Props and update DashboardPreview in next step if needed or assume it's there.
-    // Actually, I can't restart `DashboardPreview` task here easily without context switch.
-    // But I must. For now I'll add the prop.
-    // Wait, I will use `bedNumber` or similar as key? No, `patientId` is needed for DB.
-    // I'll add `patientId` to the interface and Component.
-    // NOTE: This will break TS build until parent is updated. I will do that in next step.
     patientId,
     bedNumber,
     patientInitials,
     diagnosis,
     tasks: initialTasks,
     onRefresh,
+    ...props // Capture rest including status
 }) => {
     // 1. Local State for Optimistic UI
     const [tasksState, setTasksState] = useState<PatientTask[]>(initialTasks);
@@ -173,28 +158,37 @@ const PatientCard: React.FC<PatientCardProps> = ({
         }
     };
 
+    // Determine Status: Prop OR Logic
+    const isReady = (props.status as string) === 'discharge_ready' || isAllCompleted;
+
     return (
         <div
             className={cn(
-                'rounded-xl shadow-sm border p-5 group transition-colors duration-200',
-                'bg-white dark:bg-[#1a1a1a] border-gray-200 dark:border-gray-700 hover:border-blue-500/50',
-                isAllCompleted && 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800'
+                'rounded-xl shadow-sm border p-5 group transition-all duration-200',
+                isReady
+                    ? 'bg-success-bg border-success/30'
+                    : 'bg-surface-light border-border-light hover:border-primary/50'
             )}
         >
             <div className="flex justify-between items-start mb-3">
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors">
+                <h3
+                    className={cn(
+                        "text-xl font-bold text-text-main transition-colors",
+                        isReady ? "text-success" : "group-hover:text-primary"
+                    )}
+                >
                     {bedNumber}
                 </h3>
-                {isAllCompleted && (
-                    <div className="px-2 py-1 rounded bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-xs font-bold flex items-center gap-1">
-                        <span className="material-symbols-outlined text-sm">check_circle</span>
-                        READY
+                {isReady && (
+                    <div className="flex items-center gap-1 bg-white text-success border border-success/20 px-2 py-1 rounded-md shadow-sm">
+                        <span className="material-symbols-outlined text-lg text-success">task_alt</span>
+                        <span className="text-[11px] font-bold uppercase tracking-wider">Ready</span>
                     </div>
                 )}
             </div>
 
             <div className="flex items-center gap-3 mb-4">
-                <div className="size-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold text-sm">
+                <div className="size-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold text-sm">
                     {patientInitials}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -207,17 +201,17 @@ const PatientCard: React.FC<PatientCardProps> = ({
                             onChange={(e) => setDiagnosisText(e.target.value)}
                             onBlur={handleSaveDiagnosis}
                             onKeyDown={(e) => e.key === 'Enter' && handleSaveDiagnosis()}
-                            className="w-full text-sm font-bold text-gray-900 dark:text-white bg-transparent border-b border-blue-500 focus:outline-none"
+                            className="w-full text-sm font-bold text-text-main bg-transparent border-b border-primary focus:outline-none"
                         />
                     ) : (
                         <div
                             className="group/diagnosis flex items-center gap-2 cursor-pointer"
                             onClick={() => setIsEditingDiagnosis(true)}
                         >
-                            <p className="text-sm font-bold text-gray-900 dark:text-white leading-tight truncate">
+                            <p className="text-sm font-bold text-text-main leading-tight truncate">
                                 {diagnosisText}
                             </p>
-                            <span className="material-symbols-outlined text-[14px] text-gray-400 opacity-0 group-hover/diagnosis:opacity-100 transition-opacity">
+                            <span className="material-symbols-outlined text-[14px] text-secondary opacity-0 group-hover/diagnosis:opacity-100 transition-opacity">
                                 edit
                             </span>
                         </div>
@@ -225,45 +219,44 @@ const PatientCard: React.FC<PatientCardProps> = ({
                 </div>
             </div>
 
-            <div className="h-px bg-gray-200 dark:bg-gray-700 w-full mb-4"></div>
+            <div className="h-px bg-border-light w-full mb-4"></div>
 
             <div className="space-y-3">
-                {tasksState.map((task) => {
-                    const icon = getTaskIcon(task.type);
-                    const isTaskCompleted = task.is_completed;
-                    const steps = task.steps || [];
+                {[...tasksState]
+                    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                    .map((task) => {
+                        const icon = getTaskIcon(task.type);
+                        const isTaskCompleted = task.is_completed;
+                        const steps = task.steps || [];
 
-                    return (
-                        <div key={task.id} className="flex justify-between items-start group/task pt-1">
-                            <div className="flex items-start gap-2 flex-1 min-w-0">
-                                <span
-                                    className={cn(
-                                        'material-symbols-outlined text-lg shrink-0 mt-0.5',
-                                        task.type === 'lab' && 'text-purple-500',
-                                        task.type === 'imaging' && 'text-blue-500',
-                                        task.type === 'admin' && 'text-gray-500',
-                                        task.type === 'procedure' && 'text-teal-500'
-                                    )}
-                                >
-                                    {icon}
-                                </span>
-                                <div className="flex-1 min-w-0">
+                        return (
+                            <div key={task.id} className="flex items-center justify-between group/task py-2 gap-3">
+                                {/* Column 1: Text Content */}
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
                                     <span
                                         className={cn(
-                                            'text-sm font-medium transition-colors block break-words',
-                                            isTaskCompleted
-                                                ? 'text-gray-400 line-through'
-                                                : 'text-gray-700 dark:text-gray-200'
+                                            'material-symbols-outlined text-lg shrink-0 mt-0.5',
+                                            // Unified Theme Colors
+                                            task.type === 'lab' && 'text-primary',
+                                            task.type === 'imaging' && 'text-secondary',
+                                            // Fallback for others to use Secondary or Primary
+                                            !['lab', 'imaging'].includes(task.type) && 'text-primary'
+                                        )}
+                                    >
+                                        {icon}
+                                    </span>
+                                    <span
+                                        className={cn(
+                                            "text-sm font-medium text-text-main break-words leading-tight",
+                                            isTaskCompleted && "text-gray-400 line-through"
                                         )}
                                     >
                                         {task.description}
                                     </span>
                                 </div>
-                            </div>
 
-                            <div className="flex items-center justify-end gap-1 ml-2 shrink-0">
-                                {/* Steps Checkboxes */}
-                                <div className="flex gap-1 mr-2">
+                                {/* Column 2: Checkboxes */}
+                                <div className="flex items-center gap-3">
                                     {steps.map((step, index) => (
                                         <div
                                             key={index}
@@ -272,8 +265,8 @@ const PatientCard: React.FC<PatientCardProps> = ({
                                             className={cn(
                                                 'w-4 h-4 rounded border-2 cursor-pointer flex items-center justify-center transition-colors',
                                                 step.value
-                                                    ? 'border-blue-600 bg-blue-600'
-                                                    : 'border-gray-300 dark:border-gray-600 hover:border-blue-500'
+                                                    ? 'border-primary bg-primary' // Checked: Blue Border + Blue BG
+                                                    : 'border-gray-300 hover:border-primary bg-white' // Unchecked: Gray Border + White BG
                                             )}
                                         >
                                             {step.value && (
@@ -285,33 +278,29 @@ const PatientCard: React.FC<PatientCardProps> = ({
                                     ))}
                                 </div>
 
-                                {/* Action Buttons (Edit/Delete) */}
-                                <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover/task:opacity-100 transition-opacity">
+                                {/* Column 3: Actions (Static reservation, no overlap) */}
+                                <div className="flex items-center gap-1 opacity-0 group-hover/task:opacity-100 transition-opacity duration-200 pl-2 bg-surface-light">
                                     <button
                                         onClick={() => handleEditTask(task.id, task.description)}
-                                        className="text-gray-400 hover:text-blue-500 p-0.5 rounded transition-colors"
-                                        title="Edit Task"
+                                        className="text-[10px] text-secondary hover:text-primary font-bold uppercase tracking-wide"
                                     >
-                                        <span className="material-symbols-outlined text-[16px]">edit</span>
+                                        Edit
                                     </button>
                                     <button
                                         onClick={() => handleDeleteTask(task.id)}
-                                        className="text-gray-400 hover:text-red-500 p-0.5 rounded transition-colors"
-                                        title="Delete Task"
+                                        className="text-[10px] text-red-400 hover:text-red-500 font-bold uppercase tracking-wide"
                                     >
-                                        <span className="material-symbols-outlined text-[16px]">delete</span>
+                                        Delete
                                     </button>
                                 </div>
                             </div>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
 
                 {tasksState.length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-4 text-gray-400">
+                    <div className="flex flex-col items-center justify-center py-4 text-gray-300">
                         <span className="material-symbols-outlined text-3xl mb-1 opacity-50">task</span>
                         <span className="text-xs">No active tasks</span>
-                        <button className="text-xs text-blue-500 font-bold mt-2 hover:underline">Add Task +</button>
                     </div>
                 )}
             </div>

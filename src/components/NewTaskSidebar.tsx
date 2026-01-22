@@ -77,7 +77,7 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
     };
 
     return (
-        <aside className="w-80 2xl:w-96 bg-white dark:bg-[#1a1a1a] border-l border-gray-200 dark:border-gray-800 shadow-xl z-20 hidden lg:flex flex-col h-screen fixed right-0 top-0">
+        <div className="flex flex-col h-full bg-surface-light border-l border-border-light shadow-xl">
             <div className="p-6 border-b border-gray-200 dark:border-gray-800">
                 <h2 className="text-[#101719] dark:text-white text-xl font-bold leading-tight mb-1">Add New Task</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Quickly assign orders to beds.</p>
@@ -200,7 +200,7 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
                     </div>
                 </form>
             </div>
-        </aside>
+        </div>
     );
 };
 

@@ -1,1 +1,32 @@
 @import "tailwindcss";
+
+@theme {
+  /* Fonts */
+  --font-display: 'Manrope', sans-serif;
+
+  /* Colors */
+  --color-primary: #2985a3;
+  --color-primary-hover: #206a82;
+
+  --color-secondary: #57818e;
+
+  --color-success: #40BF40;
+  --color-success-bg: #ecfdf5;
+
+  --color-surface-light: #ffffff;
+  --color-surface-dark: #232629;
+
+  --color-background-light: #f9fafb;
+  --color-background-dark: #1a1d21;
+
+  --color-border-light: #e5e7eb;
+
+  --color-text-main: #101719;
+}
+
+@layer base {
+  body {
+    /* Using the new utility classes derived from variables */
+    @apply bg-background-light text-text-main font-display antialiased;
+  }
+}

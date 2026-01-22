@@ -18,6 +18,7 @@ export interface PatientTask {
     is_completed: boolean;
     steps?: TaskStep[]; // Updated to object array
     type: 'lab' | 'imaging' | 'admin' | 'procedure';
+    created_at: string;
 }
 
 export interface PatientCardProps {

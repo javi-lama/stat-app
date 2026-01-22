@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import Login from './pages/Login';
-import DashboardPreview from './components/DashboardPreview';
+import WardDashboard from './components/WardDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import MainLayout from './components/MainLayout';
 
@@ -17,7 +17,7 @@ const App: React.FC = () => {
         {/* Protected Routes */}
         <Route element={<ProtectedRoute />}>
           <Route element={<MainLayout />}>
-            <Route path="/" element={<DashboardPreview />} />
+            <Route path="/" element={<WardDashboard />} />
             {/* Future routes like /schedule, /settings go here */}
           </Route>
         </Route>

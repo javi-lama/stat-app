@@ -1,29 +1,62 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
+import { useRealtimeCensus } from '../hooks/useRealtimeCensus';
+import NewTaskSidebar from './NewTaskSidebar';
+import { api } from '../services/api';
 
 const MainLayout: React.FC = () => {
+    // Lifted State
+    const { patients, rawPatients, loading, error, refresh } = useRealtimeCensus();
+
+    // Prepare data for sidebar
+    const sidebarPatients = rawPatients.map(p => ({
+        id: p.id,
+        bedNumber: `Bed ${p.bed_number}`,
+        patientInitials: 'PT', // This could be dynamic if we had names
+        diagnosis: p.diagnosis
+    }));
+
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex">
-            {/* Note: NewTaskSidebar and other global shells can be managed here if they need to persist across sub-pages 
-                 or we can keep them in the Dashboard for now as they are specific to that view.
-                 For this implementation, the design requests Navigation Sidebar (Left) to be reusable.
-                 The current NewTaskSidebar is actually a Right Action Panel, not navigation.
-                 The DashboardPreview contained the main content.
-                 So MainLayout will be the wrapper for the page content.
-             */}
+        <div className="flex flex-col h-screen bg-background-light text-text-main font-display overflow-hidden">
+            {/* Header */}
+            <header className="flex-none flex items-center justify-between border-b border-border-light bg-surface-light px-8 py-4 z-20 shadow-sm">
+                <div className="flex items-center gap-4">
+                    <div className="size-8 text-primary flex items-center justify-center bg-primary/10 rounded-lg">
+                        <span className="material-symbols-outlined text-2xl">local_hospital</span>
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-bold leading-tight tracking-tight">Hospitalist Dashboard</h2>
+                        <p className="text-xs text-secondary font-medium uppercase tracking-wider">Ward 4B • Internal Medicine</p>
+                    </div>
+                </div>
 
-            {/* Future Navigation Sidebar (Left) would go here */}
+                {/* Right Side Header Content */}
+                <div className="flex items-center gap-4">
+                    {/* Placeholder for Doctor Name */}
+                    <div className="text-right hidden sm:block">
+                        <p className="text-sm font-bold text-text-main">Dr. Sarah Chen</p>
+                        <p className="text-xs text-secondary">Attending Physician</p>
+                    </div>
+                    <button
+                        onClick={async () => await api.supabase.auth.signOut()}
+                        className="text-xs font-medium text-red-500 hover:text-red-600 transition-colors"
+                    >
+                        Sign Out
+                    </button>
+                </div>
+            </header>
 
-            <main className="flex-1 w-full">
-                <Outlet />
-            </main>
+            <div className="flex flex-1 overflow-hidden relative">
+                <main className="flex-1 overflow-y-auto bg-background-light p-6 lg:p-8">
+                    {/* Pass context to Dashboard */}
+                    <Outlet context={{ patients, rawPatients, loading, error, refresh }} />
+                </main>
 
-            {/* Right Action Panel (NewTaskSidebar) is currently inside DashboardPreview, 
-                so it remains part of the Outlet content for now unless we lift it up.
-                Keeping it simple as requested: "Refactor... move Header and Sidebar code... to MainLayout"
-                Wait, DashboardPreview had the layout inside.
-                Let's make sure MainLayout handles the full screen structure.
-            */}
+                <aside className="w-80 2xl:w-96 z-20 hidden lg:flex flex-col">
+                    {/* Sidebar Component fills the aside */}
+                    <NewTaskSidebar patients={sidebarPatients} onTaskCreated={refresh} />
+                </aside>
+            </div>
         </div>
     );
 };

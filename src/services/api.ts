@@ -69,6 +69,7 @@ export const api = {
             is_completed: t.is_completed,
             type: t.type || 'admin',
             steps: t.steps || [],
+            created_at: t.created_at,
         }));
 
         const isReady = tasks.length > 0 && tasks.every(t => t.is_completed);
