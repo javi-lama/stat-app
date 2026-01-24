@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import PatientCard from './PatientCard';
 import { api } from '../services/api';
 import type { Patient, PatientTask } from '../types';
+import { calculateTaskProgress } from '../lib/progressUtils';
 
 interface DashboardContextType {
     patients: (Patient & { tasks: PatientTask[] })[];
@@ -46,36 +47,95 @@ const WardDashboard: React.FC = () => {
         );
     }
 
-    // Calculate Progress (Mock logic or real if we want)
-    // HTML shows "Daily Progress 42%". Let's calculate active vs completed tasks?
-    // User didn't ask for logic, just "Pixel Perfect". I'll default to 42% or try to calculate.
-    // Let's make it static 42% to match designs for now, as logic is secondary to "Pixel Perfect".
-    const progress = "42%";
+    // Calculate Global Progress
+    const globalProgress = React.useMemo(() => {
+        // Flatten all tasks from all patients
+        const allTasks = patients.flatMap(p => p.tasks || []);
+        return calculateTaskProgress(allTasks);
+    }, [patients]);
+
+    // SVG Circle Props
+    const radius = 16;
+    const circumference = 2 * Math.PI * radius; // approx 100.53
+    const strokeDashoffset = circumference - (globalProgress.percentage / 100) * circumference;
 
     return (
         <div>
             {/* Top Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <div className="bg-surface-light p-4 rounded-xl border border-border-light shadow-sm flex items-center justify-between">
+                <div className="bg-surface-light dark:bg-surface-dark p-4 rounded-xl border border-border-light dark:border-border-dark shadow-sm flex items-center justify-between">
                     <div>
                         <p className="text-xs text-secondary font-semibold uppercase">Daily Progress</p>
                         <div className="flex items-baseline gap-1 mt-1">
-                            <p className="text-2xl font-bold text-orange-500">{progress}</p>
+                            <p className={`text-2xl font-bold ${globalProgress.textClass}`}>{globalProgress.percentage}%</p>
+                            <p className="text-[10px] text-secondary font-medium">{globalProgress.completedSteps}/{globalProgress.totalSteps}</p>
                         </div>
                     </div>
-                </div>
-                {/* Add more stats cards here if needed? HTML only showed one fully populated div */}
-                <div className="hidden md:flex bg-surface-light p-4 rounded-xl border border-border-light shadow-sm items-center justify-between opacity-50">
-                    {/* Placeholder for others */}
-                    <div>
-                        <p className="text-xs text-secondary font-semibold uppercase">Discharges</p>
-                        <p className="text-2xl font-bold text-text-main">3</p>
+                    {/* Circular Progress SVG */}
+                    <div className="relative size-10 flex items-center justify-center">
+                        <svg className="size-10 transform -rotate-90">
+                            <circle
+                                className="text-gray-200 dark:text-gray-700"
+                                cx="20"
+                                cy="20"
+                                fill="transparent"
+                                r={radius}
+                                stroke="currentColor"
+                                strokeWidth="4"
+                            ></circle>
+                            <circle
+                                className={`${globalProgress.textClass} transition-all duration-1000 ease-out`}
+                                cx="20"
+                                cy="20"
+                                fill="transparent"
+                                r={radius}
+                                stroke="currentColor"
+                                strokeDasharray={circumference}
+                                strokeDashoffset={strokeDashoffset}
+                                strokeLinecap="round"
+                                strokeWidth="4"
+                            ></circle>
+                        </svg>
+                        <span className={`material-symbols-outlined absolute ${globalProgress.textClass} text-lg`}>data_usage</span>
                     </div>
                 </div>
-                <div className="hidden md:flex bg-surface-light p-4 rounded-xl border border-border-light shadow-sm items-center justify-between opacity-50">
+                {/* Pending Labs - Example Static or Calculation */}
+                <div className="bg-surface-light dark:bg-surface-dark p-4 rounded-xl border border-border-light dark:border-border-dark shadow-sm flex items-center justify-between">
                     <div>
-                        <p className="text-xs text-secondary font-semibold uppercase">Admissions</p>
-                        <p className="text-2xl font-bold text-text-main">5</p>
+                        <p className="text-xs text-secondary font-semibold uppercase">Pending Labs</p>
+                        <p className="text-2xl font-bold text-sky-500">
+                            {/* Mock calculation: tasks of type 'lab' that are not completed? */}
+                            {patients.flatMap(p => p.tasks || []).filter(t => t.type === 'lab' && !t.is_completed).length}
+                        </p>
+                    </div>
+                    <div className="size-10 rounded-full bg-sky-50 text-sky-500 flex items-center justify-center">
+                        <span className="material-symbols-outlined">biotech</span>
+                    </div>
+                </div>
+                {/* Pending Consults - Example Static or Calculation */}
+                <div className="bg-surface-light dark:bg-surface-dark p-4 rounded-xl border border-border-light dark:border-border-dark shadow-sm flex items-center justify-between">
+                    <div>
+                        <p className="text-xs text-secondary font-semibold uppercase">Pending Consults</p>
+                        <p className="text-2xl font-bold text-success">
+                            {/* Use 'admin' as proxy for Consults for now to satisfy TS */}
+                            {patients.flatMap(p => p.tasks || []).filter(t => t.type === 'admin' && !t.is_completed).length}
+                        </p>
+                    </div>
+                    <div className="size-10 rounded-full bg-green-50 text-success flex items-center justify-center">
+                        <span className="material-symbols-outlined">stethoscope</span>
+                    </div>
+                </div>
+                {/* Pending Images - Example Static or Calculation */}
+                <div className="bg-surface-light dark:bg-surface-dark p-4 rounded-xl border border-border-light dark:border-border-dark shadow-sm flex items-center justify-between">
+                    <div>
+                        <p className="text-xs text-secondary font-semibold uppercase">Pending Images</p>
+                        <p className="text-2xl font-bold text-purple-600">
+                            {/* Use 'imaging' based on types.ts */}
+                            {patients.flatMap(p => p.tasks || []).filter(t => t.type === 'imaging' && !t.is_completed).length}
+                        </p>
+                    </div>
+                    <div className="size-10 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center">
+                        <span className="material-symbols-outlined">radiology</span>
                     </div>
                 </div>
             </div>

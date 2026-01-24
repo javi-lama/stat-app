@@ -3,6 +3,7 @@ import type { PatientCardProps, PatientTask } from '../types';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
 import { api } from '../services/api';
+import { calculateTaskProgress } from '../lib/progressUtils';
 
 // Fallback helper
 const getTaskIcon = (type: string) => {
@@ -39,6 +40,9 @@ const PatientCard: React.FC<PatientCardProps> = ({
 }) => {
     // 1. Local State for Optimistic UI
     const [tasksState, setTasksState] = useState<PatientTask[]>(initialTasks);
+
+    // Calculate Progress dynamically from local state
+    const progressStats = calculateTaskProgress(tasksState);
 
     // Dynamic Styling: Calculate "Ready" state from LOCAL state for immediate feedback
     const isAllCompleted = tasksState.length > 0 && tasksState.every(t => t.is_completed);
@@ -170,7 +174,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
                     : 'bg-surface-light border-border-light hover:border-primary/50'
             )}
         >
-            <div className="flex justify-between items-start mb-3">
+            <div className="flex justify-between items-center mb-3">
                 <h3
                     className={cn(
                         "text-xl font-bold text-text-main transition-colors",
@@ -179,12 +183,17 @@ const PatientCard: React.FC<PatientCardProps> = ({
                 >
                     {bedNumber}
                 </h3>
-                {isReady && (
-                    <div className="flex items-center gap-1 bg-white text-success border border-success/20 px-2 py-1 rounded-md shadow-sm">
-                        <span className="material-symbols-outlined text-lg text-success">task_alt</span>
-                        <span className="text-[11px] font-bold uppercase tracking-wider">Ready</span>
+
+                <div className="flex items-center gap-3">
+                    {/* Progress Bar */}
+                    <div className="w-24 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                            className={`h-full ${progressStats.bgClass} transition-all duration-500`}
+                            style={{ width: `${progressStats.percentage}%` }}
+                        ></div>
                     </div>
-                )}
+                    <span className={`text-xs font-bold ${progressStats.textClass}`}>{progressStats.percentage}%</span>
+                </div>
             </div>
 
             <div className="flex items-center gap-3 mb-4">
