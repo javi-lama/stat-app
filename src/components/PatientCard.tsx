@@ -35,17 +35,24 @@ const PatientCard: React.FC<PatientCardProps> = ({
     patientInitials,
     diagnosis,
     tasks: initialTasks,
+    visibleTaskIds,
+    className,
     onRefresh,
     ...props // Capture rest including status
 }) => {
     // 1. Local State for Optimistic UI
-    const [tasksState, setTasksState] = useState<PatientTask[]>(initialTasks);
+    const [tasksState, setTasksState] = useState<PatientTask[]>(initialTasks || []);
 
-    // Calculate Progress dynamically from local state
+    // Calculate Progress dynamically from local state using ALL TASKS (User requirement: ignore filter for progress)
     const progressStats = calculateTaskProgress(tasksState);
 
     // Dynamic Styling: Calculate "Ready" state from LOCAL state for immediate feedback
     const isAllCompleted = tasksState.length > 0 && tasksState.every(t => t.is_completed);
+
+    // Filter Logic for RENDERING ONLY
+    const tasksToRender = visibleTaskIds
+        ? tasksState.filter(t => visibleTaskIds.includes(t.id))
+        : tasksState;
 
     // Diagnosis Editing State
     const [isEditingDiagnosis, setIsEditingDiagnosis] = useState(false);
@@ -54,7 +61,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
 
     // Sync state with props (Fix for Realtime/Refetch updates)
     React.useEffect(() => {
-        setTasksState(initialTasks);
+        setTasksState(initialTasks || []);
     }, [initialTasks]);
 
     React.useEffect(() => {
@@ -171,7 +178,8 @@ const PatientCard: React.FC<PatientCardProps> = ({
                 'rounded-xl shadow-sm border p-5 group transition-all duration-200',
                 isReady
                     ? 'bg-success-bg border-success/30'
-                    : 'bg-surface-light border-border-light hover:border-primary/50'
+                    : 'bg-surface-light border-border-light hover:border-primary/50',
+                className // Allow parent to override/append classes (Ghost effect)
             )}
         >
             <div className="flex justify-between items-center mb-3">
@@ -231,7 +239,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
             <div className="h-px bg-border-light w-full mb-4"></div>
 
             <div className="space-y-3">
-                {[...tasksState]
+                {[...tasksToRender]
                     .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
                     .map((task) => {
                         const icon = getTaskIcon(task.type);

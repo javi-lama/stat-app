@@ -6,7 +6,7 @@ export interface SupabaseTask {
     id: string;
     patient_id: string;
     description: string;
-    type: 'lab' | 'imaging' | 'admin' | 'procedure';
+    type: 'lab' | 'imaging' | 'admin' | 'procedure' | 'consult' | 'paperwork' | 'supervision';
     is_completed: boolean;
     due_date: string;
     steps?: { label: string; value: boolean }[] | any; // JSONB in DB
@@ -63,14 +63,42 @@ export const api = {
      */
     adaptPatientToCard(patient: any): PatientCardProps {
         // Transform DB relation to UI format
-        const tasks: PatientTask[] = (patient.tasks || []).map((t: any) => ({
-            id: t.id,
-            description: t.description,
-            is_completed: t.is_completed,
-            type: t.type || 'admin',
-            steps: t.steps || [],
-            created_at: t.created_at,
-        }));
+        const tasks: PatientTask[] = (patient.tasks || []).map((t: any) => {
+            // Robust mapping of DB 'type' or 'category' to UI 'type'
+            // Check for Polyfill Tags in description first
+            const desc = t.description || '';
+            let finalType: PatientTask['type'] = 'admin'; // Default fallback
+            let cleanupDesc = desc;
+
+            if (desc.startsWith('[Consult]')) {
+                finalType = 'consult';
+                cleanupDesc = desc.replace('[Consult] ', '').replace('[Consult]', '');
+            } else if (desc.startsWith('[Paperwork]')) {
+                finalType = 'paperwork';
+                cleanupDesc = desc.replace('[Paperwork] ', '').replace('[Paperwork]', '');
+            } else if (desc.startsWith('[Supervision]')) {
+                finalType = 'supervision';
+                cleanupDesc = desc.replace('[Supervision] ', '').replace('[Supervision]', '');
+            } else {
+                // Fallback to legacy string matching if no tag
+                const rawType = (t.type || t.category || '').toLowerCase();
+                if (rawType.includes('consult')) finalType = 'consult';
+                else if (rawType.includes('paperwork')) finalType = 'paperwork';
+                else if (rawType.includes('supervision')) finalType = 'supervision';
+                else if (rawType.includes('lab')) finalType = 'lab';
+                else if (rawType.includes('imag')) finalType = 'imaging'; // matches image, imaging
+                else if (rawType.includes('proc')) finalType = 'procedure';
+            }
+
+            return {
+                id: t.id,
+                description: cleanupDesc.trim(), // Clean description for UI
+                is_completed: t.is_completed,
+                type: finalType,
+                steps: t.steps || [],
+                created_at: t.created_at,
+            };
+        });
 
         const isReady = tasks.length > 0 && tasks.every(t => t.is_completed);
 
@@ -109,7 +137,7 @@ export const api = {
     async createTask(payload: {
         patient_id: string;
         description: string;
-        category: 'lab' | 'imaging' | 'admin' | 'procedure';
+        category: 'lab' | 'imaging' | 'admin' | 'procedure' | 'consult' | 'paperwork' | 'supervision';
         type: 'clinical' | 'admin'; // workflow_type
     }): Promise<void> {
         let steps: { label: string; value: boolean }[] = [];
@@ -129,12 +157,27 @@ export const api = {
             ];
         }
 
+        // POLYFILL: Map extended types to 'admin' + Tag
+        let dbType = payload.category;
+        let dbDescription = payload.description;
+
+        if (payload.category === 'consult') {
+            dbType = 'admin'; // Satisfy DB Enum
+            dbDescription = `[Consult] ${payload.description}`;
+        } else if (payload.category === 'paperwork') {
+            dbType = 'admin';
+            dbDescription = `[Paperwork] ${payload.description}`;
+        } else if (payload.category === 'supervision') {
+            dbType = 'admin';
+            dbDescription = `[Supervision] ${payload.description}`;
+        }
+
         const { error } = await supabase
             .from('tasks')
             .insert({
                 patient_id: payload.patient_id,
-                description: payload.description,
-                type: payload.category,
+                description: dbDescription,
+                type: dbType,
                 is_completed: false, // Initial state always false
                 steps: steps
             });

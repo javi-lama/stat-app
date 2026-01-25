@@ -17,6 +17,71 @@ const WardDashboard: React.FC = () => {
     // Consume Context from MainLayout
     const { patients, loading, error, refresh } = useOutletContext<DashboardContextType>();
 
+    // State for Smart Filters
+    const [showFilterMenu, setShowFilterMenu] = React.useState(false);
+    const [filters, setFilters] = React.useState({
+        unfinished: false,
+        labs: false,
+        imaging: false, // Changed from images to match type 'imaging'
+        consults: false // Maps to 'admin' or 'consult'
+    });
+
+    // Toggle Helper
+    const toggleFilter = (key: keyof typeof filters) => {
+        setFilters(prev => ({ ...prev, [key]: !prev[key] }));
+    };
+
+    // Calculate Active Filters Count
+    const activeFilterCount = Object.values(filters).filter(Boolean).length;
+
+    // Calculate Global Progress (MOVED UP to avoid Hook Rotation Error)
+    const globalProgress = React.useMemo(() => {
+        // Flatten all tasks from all patients
+        // Safely handle if patients is undefined during initial load
+        const currentPatients = patients || [];
+        const allTasks = currentPatients.flatMap(p => p.tasks || []);
+        return calculateTaskProgress(allTasks);
+    }, [patients]);
+
+    // Filter Logic Engine
+    const getFilteredTaskIds = (patient: Patient & { tasks: PatientTask[] }) => {
+        if (!patient.tasks) return [];
+
+        // If no filters are active, return all task IDs (technically we handle this by passing undefined, but for logic sake)
+        // actually looking at the requirement: "Si visibleTaskIds existe, renderiza solo esas".
+        // So if NO filters are active, we should pass undefined to PatientCard to let it show all.
+        // But here we need to know if the patient matches.
+
+        const activeCategories: string[] = [];
+        if (filters.labs) activeCategories.push('lab');
+        if (filters.imaging) activeCategories.push('imaging');
+        if (filters.consults) activeCategories.push('consult');
+
+        return patient.tasks.filter(task => {
+            // 1. Unfinished Logic
+            if (filters.unfinished) {
+                if (task.is_completed) return false;
+                // Double check steps? Usually is_completed is the source of truth, but prompt said "steps.some(s => !s.value)"
+                // We'll stick to is_completed for performance unless requested otherwise.
+            }
+
+            // 2. Category Logic (OR between categories)
+            if (activeCategories.length > 0) {
+                // If it doesn't match ANY of the active categories, exclude it.
+                // Note: 'consults' filter maps to multiple types ('admin', 'consult')
+                const taskType = task.type.toLowerCase();
+                // We need to map task.type 'admin' to our 'consults' filter bucket logic if needed
+                // The activeCategories array already contains 'admin' if consults is checked.
+                if (!activeCategories.includes(taskType)) {
+                    // Special check if strict mapping is needed, but 'includes' covers it if we populated activeCategories correctly
+                    return false;
+                }
+            }
+
+            return true;
+        }).map(t => t.id);
+    };
+
     const handleClearTasks = async () => {
         if (!confirm('Are you sure you want to DELETE ALL TASKS? This cannot be undone.')) return;
         try {
@@ -27,7 +92,7 @@ const WardDashboard: React.FC = () => {
         }
     };
 
-    if (loading && patients.length === 0) {
+    if (loading && (!patients || patients.length === 0)) {
         return (
             <div className="flex items-center justify-center h-full">
                 <p className="text-secondary animate-pulse">Loading Ward Census...</p>
@@ -47,13 +112,6 @@ const WardDashboard: React.FC = () => {
         );
     }
 
-    // Calculate Global Progress
-    const globalProgress = React.useMemo(() => {
-        // Flatten all tasks from all patients
-        const allTasks = patients.flatMap(p => p.tasks || []);
-        return calculateTaskProgress(allTasks);
-    }, [patients]);
-
     // SVG Circle Props
     const radius = 16;
     const circumference = 2 * Math.PI * radius; // approx 100.53
@@ -62,7 +120,7 @@ const WardDashboard: React.FC = () => {
     return (
         <div>
             {/* Top Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 <div className="bg-surface-light dark:bg-surface-dark p-4 rounded-xl border border-border-light dark:border-border-dark shadow-sm flex items-center justify-between">
                     <div>
                         <p className="text-xs text-secondary font-semibold uppercase">Daily Progress</p>
@@ -117,8 +175,8 @@ const WardDashboard: React.FC = () => {
                     <div>
                         <p className="text-xs text-secondary font-semibold uppercase">Pending Consults</p>
                         <p className="text-2xl font-bold text-success">
-                            {/* Use 'admin' as proxy for Consults for now to satisfy TS */}
-                            {patients.flatMap(p => p.tasks || []).filter(t => t.type === 'admin' && !t.is_completed).length}
+                            {/* Count tasks strictly of type 'consult' that are not completed */}
+                            {patients.flatMap(p => p.tasks || []).filter(t => t.type === 'consult' && !t.is_completed).length}
                         </p>
                     </div>
                     <div className="size-10 rounded-full bg-green-50 text-success flex items-center justify-center">
@@ -140,30 +198,143 @@ const WardDashboard: React.FC = () => {
                 </div>
             </div>
 
-            {/* Admin Controls (Subtle) */}
-            <div className="mb-4 flex justify-end">
+            {/* Controls Bar: Filters & Admin */}
+            <div className="flex justify-between items-center mb-6">
+
+                {/* Smart Filters */}
+                <div className="relative">
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => setShowFilterMenu(!showFilterMenu)}
+                            className={`
+                                relative group border text-sm font-bold py-2 px-4 rounded-lg shadow-sm flex items-center gap-2 transition-all
+                                ${activeFilterCount > 0
+                                    ? 'bg-blue-50 border-blue-200 text-blue-700'
+                                    : 'bg-surface-light dark:bg-surface-dark border-primary text-primary hover:border-blue-600 hover:text-blue-600'
+                                }
+                            `}
+                        >
+                            <span className="material-symbols-outlined text-[18px]">filter_list</span>
+                            Filter
+                        </button>
+
+                        {activeFilterCount > 0 && (
+                            <div className="bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-2 shadow-sm animate-in fade-in zoom-in duration-200">
+                                <span className="material-symbols-outlined text-[14px]">filter_alt</span>
+                                {activeFilterCount} Filter active
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Filter Menu Dropdown */}
+                    {showFilterMenu && (
+                        <>
+                            {/* Backdrop to close */}
+                            <div
+                                className="fixed inset-0 z-40"
+                                onClick={() => setShowFilterMenu(false)}
+                            ></div>
+
+                            <div className="absolute left-0 mt-2 w-56 bg-surface-light dark:bg-surface-dark rounded-xl shadow-lg border border-border-light dark:border-border-dark z-50 p-2 flex flex-col gap-1">
+                                <div className="px-3 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                    Focus Mode
+                                </div>
+                                <label className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors">
+                                    <input
+                                        type="checkbox"
+                                        checked={filters.unfinished}
+                                        onChange={() => toggleFilter('unfinished')}
+                                        className="form-checkbox text-primary rounded border-secondary/50 focus:ring-primary h-4 w-4"
+                                    />
+                                    <span className="text-sm font-medium text-text-main">Unfinished Tasks</span>
+                                </label>
+
+                                <div className="h-px bg-border-light my-1 mx-2"></div>
+
+                                <label className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors">
+                                    <input
+                                        type="checkbox"
+                                        checked={filters.labs}
+                                        onChange={() => toggleFilter('labs')}
+                                        className="form-checkbox text-primary rounded border-secondary/50 focus:ring-primary h-4 w-4"
+                                    />
+                                    <span className="text-sm font-medium text-text-main">Labs</span>
+                                </label>
+                                <label className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors">
+                                    <input
+                                        type="checkbox"
+                                        checked={filters.imaging}
+                                        onChange={() => toggleFilter('imaging')}
+                                        className="form-checkbox text-primary rounded border-secondary/50 focus:ring-primary h-4 w-4"
+                                    />
+                                    <span className="text-sm font-medium text-text-main">Images</span>
+                                </label>
+                                <label className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors">
+                                    <input
+                                        type="checkbox"
+                                        checked={filters.consults}
+                                        onChange={() => toggleFilter('consults')}
+                                        className="form-checkbox text-primary rounded border-secondary/50 focus:ring-primary h-4 w-4"
+                                    />
+                                    <span className="text-sm font-medium text-text-main">Consults</span>
+                                </label>
+                            </div>
+                        </>
+                    )}
+                </div>
+
                 <button
                     onClick={handleClearTasks}
                     className="px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors"
                 >
-                    DEBUG: CLEAR TASKS
+                    CLEAR TASKS
                 </button>
             </div>
 
             {/* Patient Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 pb-20">
-                {patients.map((patient: any) => (
-                    <PatientCard
-                        key={patient.id || patient.patientId} // fallback
-                        patientId={patient.patientId}
-                        bedNumber={patient.bed_number || patient.bedNumber}
-                        patientInitials="PT" // patient.initials logic if exists
-                        diagnosis={patient.diagnosis}
-                        status={patient.status}
-                        tasks={patient.tasks}
-                        onRefresh={refresh}
-                    />
-                ))}
+                {patients.map((patient: any) => {
+                    const matchedTaskIds = getFilteredTaskIds(patient);
+                    const isFilterActive = activeFilterCount > 0;
+
+                    // Logic for Active/Ghost State
+                    // If filters are active AND patient has 0 matches -> Inactive (Ghost)
+                    // If filters are active AND patient has matches -> Active (Ring)
+                    // If no filters -> Standard View
+
+                    let cardClassName = "";
+                    let visibleTaskIds = undefined;
+
+                    if (isFilterActive) {
+                        if (matchedTaskIds.length > 0) {
+                            // Active Match
+                            cardClassName = "ring-2 ring-blue-500 shadow-blue-500/10 opacity-100 scale-[1.01] transition-all";
+                            visibleTaskIds = matchedTaskIds;
+                        } else {
+                            // No Match (Ghost)
+                            cardClassName = "opacity-25 grayscale-[0.5] scale-95 transition-all";
+                            // We still pass empty array or undefined? 
+                            // If we pass [], PatientCard will render "No active tasks". 
+                            // If we want to hide everything in ghost mode we can pass [].
+                            visibleTaskIds = [];
+                        }
+                    }
+
+                    return (
+                        <PatientCard
+                            key={patient.id || patient.patientId} // fallback
+                            patientId={patient.patientId}
+                            bedNumber={patient.bed_number || patient.bedNumber}
+                            patientInitials="PT" // patient.initials logic if exists
+                            diagnosis={patient.diagnosis}
+                            status={patient.status}
+                            tasks={patient.tasks}
+                            onRefresh={refresh}
+                            visibleTaskIds={visibleTaskIds}
+                            className={cardClassName}
+                        />
+                    );
+                })}
 
                 {/* Empty Bed / Unoccupied Card (from HTML) - Example */}
                 <div className="bg-surface-light rounded-xl shadow-sm border border-dashed border-border-light p-5 flex flex-col items-center justify-center min-h-[200px] opacity-60">

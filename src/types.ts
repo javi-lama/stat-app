@@ -17,7 +17,7 @@ export interface PatientTask {
     description: string;
     is_completed: boolean;
     steps?: TaskStep[]; // Updated to object array
-    type: 'lab' | 'imaging' | 'admin' | 'procedure';
+    type: 'lab' | 'imaging' | 'admin' | 'procedure' | 'consult' | 'paperwork' | 'supervision';
     created_at: string;
 }
 
@@ -29,4 +29,7 @@ export interface PatientCardProps {
     status: 'stable' | 'critical' | 'ready';
     tasks: PatientTask[];
     onRefresh?: () => void;
+    // Smart Filter Props
+    visibleTaskIds?: string[];
+    className?: string; // For "Ghost" or "Active" styling from parent
 }

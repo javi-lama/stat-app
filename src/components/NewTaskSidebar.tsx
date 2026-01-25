@@ -8,7 +8,7 @@ import { api } from '../services/api';
 // Zod Schema
 const newTaskSchema = z.object({
     patient_id: z.string().min(1, "Please select a patient"),
-    category: z.enum(['lab', 'imaging', 'admin', 'procedure']), // consult/paperwork/supervision mapped?
+    category: z.enum(['lab', 'imaging', 'admin', 'procedure', 'consult', 'paperwork', 'supervision']), // consult/paperwork/supervision mapped?
     // User UI has: Lab, Image, Consult, Paperwork, Procedure, Supervision
     // DB has: lab, imaging, admin, procedure.
     // We need to map UI options to DB options.
@@ -110,10 +110,10 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
                             {[
                                 { label: 'Lab', value: 'lab' },
                                 { label: 'Image', value: 'imaging' },
-                                { label: 'Consult', value: 'admin' },
-                                { label: 'Paperwork', value: 'admin' }, // Mapping to 'admin' as fallback
+                                { label: 'Consult', value: 'consult' },
+                                { label: 'Paperwork', value: 'paperwork' },
                                 { label: 'Procedure', value: 'procedure' },
-                                { label: 'Supervision', value: 'admin' } // Mapping to 'admin'
+                                { label: 'Supervision', value: 'supervision' }
                             ].map((opt, idx) => (
                                 <label key={`${opt.value}-${idx}`} className="cursor-pointer">
                                     <input
