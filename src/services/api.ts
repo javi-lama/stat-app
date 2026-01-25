@@ -237,5 +237,41 @@ export const api = {
             console.error('Error clearing tasks:', error);
             throw error;
         }
+    },
+
+    /**
+     * Adds a new patient (bed) to the ward.
+     */
+    async addPatient(bedNumber: string): Promise<void> {
+        const { error } = await supabase
+            .from('patients')
+            .insert([{
+                bed_number: bedNumber,
+                status: 'stable', // Default status
+                diagnosis: '', // Empty diagnosis
+                admission_date: new Date().toISOString()
+            }]);
+
+        if (error) {
+            console.error('Error adding patient:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Deletes a patient (bed) and implicitly their tasks (via Cascade or separate cleanup if needed).
+     */
+    async deletePatient(patientId: string): Promise<void> {
+        // optimistically assume cascade delete works for tasks linked to patient_id
+        // If not, we'd need to delete tasks first.
+        const { error } = await supabase
+            .from('patients')
+            .delete()
+            .eq('id', patientId);
+
+        if (error) {
+            console.error('Error deleting patient:', error);
+            throw error;
+        }
     }
 };

@@ -4,6 +4,8 @@ import PatientCard from './PatientCard';
 import { api } from '../services/api';
 import type { Patient, PatientTask } from '../types';
 import { calculateTaskProgress } from '../lib/progressUtils';
+import { generateHandoffText } from '../lib/handoffGenerator';
+import { toast } from 'sonner';
 
 interface DashboardContextType {
     patients: (Patient & { tasks: PatientTask[] })[];
@@ -26,10 +28,16 @@ const WardDashboard: React.FC = () => {
         consults: false // Maps to 'admin' or 'consult'
     });
 
+    // State for Handoff Menu
+    const [showHandoffMenu, setShowHandoffMenu] = React.useState(false);
+
     // Toggle Helper
     const toggleFilter = (key: keyof typeof filters) => {
         setFilters(prev => ({ ...prev, [key]: !prev[key] }));
     };
+
+    // State for Configuration Mode (Bed CRUD)
+    const [isConfigMode, setIsConfigMode] = React.useState(false);
 
     // Calculate Active Filters Count
     const activeFilterCount = Object.values(filters).filter(Boolean).length;
@@ -82,6 +90,22 @@ const WardDashboard: React.FC = () => {
         }).map(t => t.id);
     };
 
+    const handleHandoff = async (mode: 'all' | 'missing') => {
+        try {
+            const handoffText = generateHandoffText(patients, mode);
+            await navigator.clipboard.writeText(handoffText);
+            toast.success("Handoff copiado al portapapeles");
+            setShowHandoffMenu(false);
+        } catch (err) {
+            console.error('Failed to copy handoff:', err);
+            toast.error("Error al copiar al portapapeles");
+        }
+    };
+
+
+
+    // --- Bed CRUD Logic ---
+
     const handleClearTasks = async () => {
         if (!confirm('Are you sure you want to DELETE ALL TASKS? This cannot be undone.')) return;
         try {
@@ -89,6 +113,45 @@ const WardDashboard: React.FC = () => {
             refresh();
         } catch (err) {
             console.error(err);
+        }
+    };
+
+    const handleAddBed = async () => {
+        // 1. Limit Check
+        // Count actual "cards" (patients).
+        if (patients.length >= 30) {
+            toast.error("Maximum capacity reached (30 beds). Cannot add more.");
+            return;
+        }
+
+        try {
+            // 2. Calculate ID
+            const occupiedNumbers = patients.map(p => {
+                const anyP = p as any;
+                const num = parseInt(p.bed_number) || parseInt(anyP.bedNumber) || 0;
+                return num;
+            });
+            const maxBed = occupiedNumbers.length > 0 ? Math.max(...occupiedNumbers) : 86; // Start at 86-1 if empty? Or just 1. Let's assume 86 as baseline if list empty, else max.
+            const newBedNumber = (maxBed + 1).toString();
+
+            await api.addPatient(newBedNumber);
+            toast.success(`Bed ${newBedNumber} added successfully`);
+            refresh();
+        } catch (err) {
+            console.error('Add bed failed', err);
+            toast.error('Failed to add bed');
+        }
+    };
+
+    const handleDeleteBed = async (patientId: string) => {
+        // Confirmation is handled in PatientCard before calling this
+        try {
+            await api.deletePatient(patientId);
+            toast.success("Bed deleted");
+            refresh();
+        } catch (err) {
+            console.error('Delete bed failed', err);
+            toast.error('Failed to delete bed');
         }
     };
 
@@ -201,87 +264,149 @@ const WardDashboard: React.FC = () => {
             {/* Controls Bar: Filters & Admin */}
             <div className="flex justify-between items-center mb-6">
 
-                {/* Smart Filters */}
-                <div className="relative">
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => setShowFilterMenu(!showFilterMenu)}
-                            className={`
-                                relative group border text-sm font-bold py-2 px-4 rounded-lg shadow-sm flex items-center gap-2 transition-all
-                                ${activeFilterCount > 0
-                                    ? 'bg-blue-50 border-blue-200 text-blue-700'
-                                    : 'bg-surface-light dark:bg-surface-dark border-primary text-primary hover:border-blue-600 hover:text-blue-600'
-                                }
-                            `}
-                        >
-                            <span className="material-symbols-outlined text-[18px]">filter_list</span>
-                            Filter
-                        </button>
+                {/* Left Side: Filters + Handoff */}
+                <div className="flex items-center gap-3">
+                    {/* Smart Filters */}
+                    <div className="relative">
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => setShowFilterMenu(!showFilterMenu)}
+                                className={`
+                                    relative group border text-sm font-bold py-2 px-4 rounded-lg shadow-sm flex items-center gap-2 transition-all
+                                    ${activeFilterCount > 0
+                                        ? 'bg-blue-50 border-blue-200 text-blue-700'
+                                        : 'bg-surface-light dark:bg-surface-dark border-primary text-primary hover:border-blue-600 hover:text-blue-600'
+                                    }
+                                `}
+                            >
+                                <span className="material-symbols-outlined text-[18px]">filter_list</span>
+                                Filter
+                            </button>
 
-                        {activeFilterCount > 0 && (
-                            <div className="bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-2 shadow-sm animate-in fade-in zoom-in duration-200">
-                                <span className="material-symbols-outlined text-[14px]">filter_alt</span>
-                                {activeFilterCount} Filter active
-                            </div>
+                            {activeFilterCount > 0 && (
+                                <div className="bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-2 shadow-sm animate-in fade-in zoom-in duration-200">
+                                    <span className="material-symbols-outlined text-[14px]">filter_alt</span>
+                                    {activeFilterCount} Filter active
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Filter Menu Dropdown */}
+                        {showFilterMenu && (
+                            <>
+                                {/* Backdrop to close */}
+                                <div
+                                    className="fixed inset-0 z-40"
+                                    onClick={() => setShowFilterMenu(false)}
+                                ></div>
+
+                                <div className="absolute left-0 mt-2 w-56 bg-surface-light dark:bg-surface-dark rounded-xl shadow-lg border border-border-light dark:border-border-dark z-50 p-2 flex flex-col gap-1">
+                                    <div className="px-3 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                        Focus Mode
+                                    </div>
+                                    <label className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors">
+                                        <input
+                                            type="checkbox"
+                                            checked={filters.unfinished}
+                                            onChange={() => toggleFilter('unfinished')}
+                                            className="form-checkbox text-primary rounded border-secondary/50 focus:ring-primary h-4 w-4"
+                                        />
+                                        <span className="text-sm font-medium text-text-main">Unfinished Tasks</span>
+                                    </label>
+
+                                    <div className="h-px bg-border-light my-1 mx-2"></div>
+
+                                    <label className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors">
+                                        <input
+                                            type="checkbox"
+                                            checked={filters.labs}
+                                            onChange={() => toggleFilter('labs')}
+                                            className="form-checkbox text-primary rounded border-secondary/50 focus:ring-primary h-4 w-4"
+                                        />
+                                        <span className="text-sm font-medium text-text-main">Labs</span>
+                                    </label>
+                                    <label className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors">
+                                        <input
+                                            type="checkbox"
+                                            checked={filters.imaging}
+                                            onChange={() => toggleFilter('imaging')}
+                                            className="form-checkbox text-primary rounded border-secondary/50 focus:ring-primary h-4 w-4"
+                                        />
+                                        <span className="text-sm font-medium text-text-main">Images</span>
+                                    </label>
+                                    <label className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors">
+                                        <input
+                                            type="checkbox"
+                                            checked={filters.consults}
+                                            onChange={() => toggleFilter('consults')}
+                                            className="form-checkbox text-primary rounded border-secondary/50 focus:ring-primary h-4 w-4"
+                                        />
+                                        <span className="text-sm font-medium text-text-main">Consults</span>
+                                    </label>
+                                </div>
+                            </>
                         )}
                     </div>
 
-                    {/* Filter Menu Dropdown */}
-                    {showFilterMenu && (
-                        <>
-                            {/* Backdrop to close */}
-                            <div
-                                className="fixed inset-0 z-40"
-                                onClick={() => setShowFilterMenu(false)}
-                            ></div>
+                    {/* Handoff Button & Menu */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowHandoffMenu(!showHandoffMenu)}
+                            className="relative group border border-primary text-primary hover:border-blue-600 hover:text-blue-600 text-sm font-bold py-2 px-4 rounded-lg shadow-sm flex items-center gap-2 transition-all bg-surface-light dark:bg-surface-dark"
+                        >
+                            <span className="material-symbols-outlined text-[18px]">assignment</span>
+                            Hand-off
+                        </button>
 
-                            <div className="absolute left-0 mt-2 w-56 bg-surface-light dark:bg-surface-dark rounded-xl shadow-lg border border-border-light dark:border-border-dark z-50 p-2 flex flex-col gap-1">
-                                <div className="px-3 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                    Focus Mode
+                        {showHandoffMenu && (
+                            <>
+                                <div
+                                    className="fixed inset-0 z-40"
+                                    onClick={() => setShowHandoffMenu(false)}
+                                ></div>
+                                <div className="absolute left-0 mt-2 w-56 bg-surface-light dark:bg-surface-dark rounded-xl shadow-lg border border-border-light dark:border-border-dark z-50 p-2 flex flex-col gap-1">
+                                    <div className="px-3 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                        Generate Report
+                                    </div>
+                                    <button
+                                        onClick={() => handleHandoff('all')}
+                                        className="w-full text-left flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors text-text-main"
+                                    >
+                                        <span className="material-symbols-outlined text-lg">description</span>
+                                        <span className="text-sm font-medium">Report All Tasks</span>
+                                    </button>
+                                    <button
+                                        onClick={() => handleHandoff('missing')}
+                                        className="w-full text-left flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors text-text-main"
+                                    >
+                                        <span className="material-symbols-outlined text-lg text-orange-500">warning</span>
+                                        <span className="text-sm font-medium">Pending Only</span>
+                                    </button>
                                 </div>
-                                <label className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors">
-                                    <input
-                                        type="checkbox"
-                                        checked={filters.unfinished}
-                                        onChange={() => toggleFilter('unfinished')}
-                                        className="form-checkbox text-primary rounded border-secondary/50 focus:ring-primary h-4 w-4"
-                                    />
-                                    <span className="text-sm font-medium text-text-main">Unfinished Tasks</span>
-                                </label>
+                            </>
+                        )}
+                    </div>
 
-                                <div className="h-px bg-border-light my-1 mx-2"></div>
-
-                                <label className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors">
-                                    <input
-                                        type="checkbox"
-                                        checked={filters.labs}
-                                        onChange={() => toggleFilter('labs')}
-                                        className="form-checkbox text-primary rounded border-secondary/50 focus:ring-primary h-4 w-4"
-                                    />
-                                    <span className="text-sm font-medium text-text-main">Labs</span>
-                                </label>
-                                <label className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors">
-                                    <input
-                                        type="checkbox"
-                                        checked={filters.imaging}
-                                        onChange={() => toggleFilter('imaging')}
-                                        className="form-checkbox text-primary rounded border-secondary/50 focus:ring-primary h-4 w-4"
-                                    />
-                                    <span className="text-sm font-medium text-text-main">Images</span>
-                                </label>
-                                <label className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors">
-                                    <input
-                                        type="checkbox"
-                                        checked={filters.consults}
-                                        onChange={() => toggleFilter('consults')}
-                                        className="form-checkbox text-primary rounded border-secondary/50 focus:ring-primary h-4 w-4"
-                                    />
-                                    <span className="text-sm font-medium text-text-main">Consults</span>
-                                </label>
-                            </div>
-                        </>
-                    )}
+                    {/* Config Mode Toggle (Bed Edit) */}
+                    <button
+                        onClick={() => setIsConfigMode(!isConfigMode)}
+                        className={`
+                            relative group border text-sm font-bold py-2 px-4 rounded-lg shadow-sm flex items-center gap-2 transition-all
+                            ${isConfigMode
+                                ? 'bg-primary border-primary text-white hover:bg-primary/90'
+                                : 'bg-surface-light dark:bg-surface-dark border-secondary text-secondary hover:border-primary hover:text-primary'
+                            }
+                        `}
+                    >
+                        <span className="material-symbols-outlined text-[18px]">
+                            {isConfigMode ? 'check' : 'tune'}
+                        </span>
+                        {isConfigMode ? 'Done' : 'Bed edit'}
+                    </button>
                 </div>
+
+                {/* Config Mode Toggle */}
+
 
                 <button
                     onClick={handleClearTasks}
@@ -332,9 +457,25 @@ const WardDashboard: React.FC = () => {
                             onRefresh={refresh}
                             visibleTaskIds={visibleTaskIds}
                             className={cardClassName}
+                            isConfigMode={isConfigMode}
+                            onDelete={handleDeleteBed}
                         />
                     );
                 })}
+
+                {/* Add Bed Card (Config Mode) */}
+                {isConfigMode && (
+                    <div
+                        onClick={handleAddBed}
+                        className="bg-surface-light/50 dark:bg-surface-dark/50 rounded-xl shadow-sm border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 p-5 flex flex-col items-center justify-center min-h-[200px] cursor-pointer group transition-all"
+                    >
+                        <div className="size-16 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                            <span className="material-symbols-outlined text-4xl text-primary">add</span>
+                        </div>
+                        <h3 className="text-lg font-bold text-primary">Add Bed</h3>
+                        <p className="text-xs text-secondary mt-1">Capacity: {patients.length}/30</p>
+                    </div>
+                )}
 
                 {/* Empty Bed / Unoccupied Card (from HTML) - Example */}
                 <div className="bg-surface-light rounded-xl shadow-sm border border-dashed border-border-light p-5 flex flex-col items-center justify-center min-h-[200px] opacity-60">

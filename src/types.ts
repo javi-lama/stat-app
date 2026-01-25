@@ -29,6 +29,9 @@ export interface PatientCardProps {
     status: 'stable' | 'critical' | 'ready';
     tasks: PatientTask[];
     onRefresh?: () => void;
+    // Bed Config Props
+    isConfigMode?: boolean;
+    onDelete?: (id: string) => void;
     // Smart Filter Props
     visibleTaskIds?: string[];
     className?: string; // For "Ghost" or "Active" styling from parent

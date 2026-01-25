@@ -1,9 +1,24 @@
 import React, { useState, useRef } from 'react';
-import type { PatientCardProps, PatientTask } from '../types';
+import type { PatientTask } from '../types'; // PatientCardProps moved to this file
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
 import { api } from '../services/api';
 import { calculateTaskProgress } from '../lib/progressUtils';
+
+// Update Props Interface
+export interface PatientCardProps {
+    patientId: string;
+    bedNumber: string;
+    patientInitials: string;
+    diagnosis: string;
+    status: 'stable' | 'critical' | 'ready';
+    tasks: PatientTask[];
+    onRefresh?: () => void;
+    visibleTaskIds?: string[];
+    className?: string;
+    isConfigMode?: boolean; // NEW
+    onDelete?: (id: string) => void; // NEW
+}
 
 // Fallback helper
 const getTaskIcon = (type: string) => {
@@ -38,6 +53,8 @@ const PatientCard: React.FC<PatientCardProps> = ({
     visibleTaskIds,
     className,
     onRefresh,
+    isConfigMode,
+    onDelete,
     ...props // Capture rest including status
 }) => {
     // 1. Local State for Optimistic UI
@@ -137,6 +154,19 @@ const PatientCard: React.FC<PatientCardProps> = ({
         }
     };
 
+
+
+    // Bed Delete Handler (Config Mode)
+    const handleDeleteBed = () => {
+        if (!onDelete) return;
+        const confirm = window.confirm(
+            `⚠️ DANGER ZONE: This will permanently delete Bed ${bedNumber} and ALL its history/tasks.\n\nAre you sure?`
+        );
+        if (confirm) {
+            onDelete(patientId);
+        }
+    };
+
     // 2. Toggle Function (Existing)
     const toggleTaskStep = async (taskId: string, stepIndex: number) => {
         const taskIndex = tasksState.findIndex(t => t.id === taskId);
@@ -175,13 +205,28 @@ const PatientCard: React.FC<PatientCardProps> = ({
     return (
         <div
             className={cn(
-                'rounded-xl shadow-sm border p-5 group transition-all duration-200',
+                'rounded-xl shadow-sm border p-5 group transition-all duration-200 relative', // Added relative here explicitly
                 isReady
                     ? 'bg-success-bg border-success/30'
                     : 'bg-surface-light border-border-light hover:border-primary/50',
-                className // Allow parent to override/append classes (Ghost effect)
+                isConfigMode && "animate-shake ring-2 ring-primary/20", // Config Mode: Shake & Highlight
+                className
             )}
         >
+            {/* Delete Badge (Config Mode) - Top RIGHT */}
+            {isConfigMode && (
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteBed();
+                    }}
+                    className="absolute -top-3 -right-3 size-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform z-20 cursor-pointer"
+                    title="Delete Bed"
+                >
+                    <span className="material-symbols-outlined text-lg">close</span>
+                </button>
+            )}
+
             <div className="flex justify-between items-center mb-3">
                 <h3
                     className={cn(
@@ -209,8 +254,8 @@ const PatientCard: React.FC<PatientCardProps> = ({
                     {patientInitials}
                 </div>
                 <div className="flex-1 min-w-0">
-                    {/* Diagnosis Inline Edit */}
-                    {isEditingDiagnosis ? (
+                    {/* Diagnosis Inline Edit - Show Input if Editing OR Config Mode */}
+                    {isEditingDiagnosis || isConfigMode ? (
                         <input
                             ref={diagnosisInputRef}
                             type="text"
@@ -218,11 +263,20 @@ const PatientCard: React.FC<PatientCardProps> = ({
                             onChange={(e) => setDiagnosisText(e.target.value)}
                             onBlur={handleSaveDiagnosis}
                             onKeyDown={(e) => e.key === 'Enter' && handleSaveDiagnosis()}
-                            className="w-full text-sm font-bold text-text-main bg-transparent border-b border-primary focus:outline-none"
+                            className={cn(
+                                "w-full text-sm font-bold text-text-main bg-transparent focus:outline-none transition-all",
+                                isConfigMode
+                                    ? "bg-white border rounded px-2 py-1 border-primary/50 shadow-sm" // Config Mode: Visual Input Box
+                                    : "border-b border-primary" // Normal Edit: Underline
+                            )}
+                            placeholder={isConfigMode ? "Edit Diagnosis..." : ""}
+                            onClick={(e) => e.stopPropagation()}
                         />
                     ) : (
                         <div
-                            className="group/diagnosis flex items-center gap-2 cursor-pointer"
+                            className={cn(
+                                "group/diagnosis flex items-center gap-2 cursor-pointer"
+                            )}
                             onClick={() => setIsEditingDiagnosis(true)}
                         >
                             <p className="text-sm font-bold text-text-main leading-tight truncate">
@@ -273,11 +327,11 @@ const PatientCard: React.FC<PatientCardProps> = ({
                                 </div>
 
                                 {/* Column 2: Checkboxes */}
-                                <div className="flex items-center gap-3">
+                                <div className={cn("flex items-center gap-3", isConfigMode && "opacity-50 pointer-events-none grayscale")}>
                                     {steps.map((step, index) => (
                                         <div
                                             key={index}
-                                            onClick={() => toggleTaskStep(task.id, index)}
+                                            onClick={() => !isConfigMode && toggleTaskStep(task.id, index)}
                                             title={step.label}
                                             className={cn(
                                                 'w-4 h-4 rounded border-2 cursor-pointer flex items-center justify-center transition-colors',
