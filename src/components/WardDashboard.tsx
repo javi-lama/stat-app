@@ -262,10 +262,10 @@ const WardDashboard: React.FC = () => {
             </div>
 
             {/* Controls Bar: Filters & Admin */}
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
 
                 {/* Left Side: Filters + Handoff */}
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                     {/* Smart Filters */}
                     <div className="relative">
                         <div className="flex items-center gap-3">
@@ -417,7 +417,7 @@ const WardDashboard: React.FC = () => {
             </div>
 
             {/* Patient Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 pb-20">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6 pb-20 p-1">
                 {patients.map((patient: any) => {
                     const matchedTaskIds = getFilteredTaskIds(patient);
                     const isFilterActive = activeFilterCount > 0;

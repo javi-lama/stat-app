@@ -303,7 +303,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
                         return (
                             <div key={task.id} className="flex items-center justify-between group/task py-2 gap-3">
                                 {/* Column 1: Text Content */}
-                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
                                     <span
                                         className={cn(
                                             'material-symbols-outlined text-lg shrink-0 mt-0.5',
@@ -327,7 +327,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
                                 </div>
 
                                 {/* Column 2: Checkboxes */}
-                                <div className={cn("flex items-center gap-3", isConfigMode && "opacity-50 pointer-events-none grayscale")}>
+                                <div className={cn("flex items-center gap-3 flex-shrink-0 ml-2", isConfigMode && "opacity-50 pointer-events-none grayscale")}>
                                     {steps.map((step, index) => (
                                         <div
                                             key={index}
@@ -350,7 +350,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
                                 </div>
 
                                 {/* Column 3: Actions (Static reservation, no overlap) */}
-                                <div className="flex items-center gap-1 opacity-0 group-hover/task:opacity-100 transition-opacity duration-200 pl-2 bg-surface-light">
+                                <div className="flex items-center gap-1 opacity-0 group-hover/task:opacity-100 transition-opacity duration-200 pl-2 bg-surface-light flex-shrink-0">
                                     <button
                                         onClick={() => handleEditTask(task.id, task.description)}
                                         className="text-[10px] text-secondary hover:text-primary font-bold uppercase tracking-wide"
