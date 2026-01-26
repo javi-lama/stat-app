@@ -1,5 +1,6 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
+import type { User } from '@supabase/supabase-js';
 import { useRealtimeCensus } from '../hooks/useRealtimeCensus';
 import NewTaskSidebar from './NewTaskSidebar';
 import { api } from '../services/api';
@@ -19,6 +20,15 @@ const MainLayout: React.FC = () => {
     // Mobile Task Drawer State
     const [isMobileTaskOpen, setIsMobileTaskOpen] = React.useState(false);
 
+    // User State
+    const [user, setUser] = React.useState<User | null>(null);
+
+    React.useEffect(() => {
+        api.supabase.auth.getUser().then(({ data: { user } }) => {
+            setUser(user);
+        });
+    }, []);
+
     return (
         <div className="flex flex-col h-screen bg-background-light text-text-main font-display overflow-hidden">
             {/* Header */}
@@ -28,8 +38,8 @@ const MainLayout: React.FC = () => {
                         <span className="material-symbols-outlined text-2xl">local_hospital</span>
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold leading-tight tracking-tight">Hospitalist Dashboard</h2>
-                        <p className="text-xs text-secondary font-medium uppercase tracking-wider">Ward 4B • Internal Medicine</p>
+                        <h2 className="text-xl font-bold leading-tight tracking-tight">STAT.</h2>
+                        <p className="text-xs text-secondary font-medium uppercase tracking-wider">Medicina A2 • Internal Medicine</p>
                     </div>
                 </div>
 
@@ -37,10 +47,9 @@ const MainLayout: React.FC = () => {
                 <div className="flex items-center gap-4">
 
 
-                    {/* Placeholder for Doctor Name */}
+                    {/* User Profile */}
                     <div className="text-right hidden sm:block">
-                        <p className="text-sm font-bold text-text-main">Dr. Sarah Chen</p>
-                        <p className="text-xs text-secondary">Attending Physician</p>
+                        <p className="text-sm font-bold text-text-main">{user?.email || 'Loading...'}</p>
                     </div>
                     <button
                         onClick={async () => await api.supabase.auth.signOut()}

@@ -224,12 +224,12 @@ const WardDashboard: React.FC = () => {
                 <div className="bg-surface-light dark:bg-surface-dark p-4 rounded-xl border border-border-light dark:border-border-dark shadow-sm flex items-center justify-between">
                     <div>
                         <p className="text-xs text-secondary font-semibold uppercase">Pending Labs</p>
-                        <p className="text-2xl font-bold text-sky-500">
+                        <p className="text-2xl font-bold text-primary">
                             {/* Mock calculation: tasks of type 'lab' that are not completed? */}
                             {patients.flatMap(p => p.tasks || []).filter(t => t.type === 'lab' && !t.is_completed).length}
                         </p>
                     </div>
-                    <div className="size-10 rounded-full bg-sky-50 text-sky-500 flex items-center justify-center">
+                    <div className="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
                         <span className="material-symbols-outlined">biotech</span>
                     </div>
                 </div>
@@ -274,8 +274,8 @@ const WardDashboard: React.FC = () => {
                                 className={`
                                     relative group border text-sm font-bold py-2 px-4 rounded-lg shadow-sm flex items-center gap-2 transition-all
                                     ${activeFilterCount > 0
-                                        ? 'bg-blue-50 border-blue-200 text-blue-700'
-                                        : 'bg-surface-light dark:bg-surface-dark border-primary text-primary hover:border-blue-600 hover:text-blue-600'
+                                        ? 'bg-primary/10 border-primary text-primary'
+                                        : 'bg-surface-light dark:bg-surface-dark border-primary text-primary hover:bg-primary hover:text-white'
                                     }
                                 `}
                             >
@@ -284,7 +284,7 @@ const WardDashboard: React.FC = () => {
                             </button>
 
                             {activeFilterCount > 0 && (
-                                <div className="bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-2 shadow-sm animate-in fade-in zoom-in duration-200">
+                                <div className="bg-primary/10 text-primary border border-primary/20 text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-2 shadow-sm animate-in fade-in zoom-in duration-200">
                                     <span className="material-symbols-outlined text-[14px]">filter_alt</span>
                                     {activeFilterCount} Filter active
                                 </div>
@@ -352,7 +352,7 @@ const WardDashboard: React.FC = () => {
                     <div className="relative">
                         <button
                             onClick={() => setShowHandoffMenu(!showHandoffMenu)}
-                            className="relative group border border-primary text-primary hover:border-blue-600 hover:text-blue-600 text-sm font-bold py-2 px-4 rounded-lg shadow-sm flex items-center gap-2 transition-all bg-surface-light dark:bg-surface-dark"
+                            className="relative group border border-primary text-primary hover:bg-primary hover:text-white text-sm font-bold py-2 px-4 rounded-lg shadow-sm flex items-center gap-2 transition-all bg-surface-light dark:bg-surface-dark"
                         >
                             <span className="material-symbols-outlined text-[18px]">assignment</span>
                             Hand-off
@@ -433,7 +433,7 @@ const WardDashboard: React.FC = () => {
                     if (isFilterActive) {
                         if (matchedTaskIds.length > 0) {
                             // Active Match
-                            cardClassName = "ring-2 ring-blue-500 shadow-blue-500/10 opacity-100 scale-[1.01] transition-all";
+                            cardClassName = "ring-2 ring-primary shadow-primary/10 opacity-100 scale-[1.01] transition-all";
                             visibleTaskIds = matchedTaskIds;
                         } else {
                             // No Match (Ghost)

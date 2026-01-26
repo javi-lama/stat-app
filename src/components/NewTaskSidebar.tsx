@@ -90,7 +90,7 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
                         <div className="relative">
                             <select
                                 {...register('patient_id')}
-                                className="w-full bg-gray-50 dark:bg-[#252525] border-gray-200 dark:border-gray-700 rounded-lg py-2.5 px-3 text-sm font-medium focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none cursor-pointer text-gray-900 dark:text-white appearance-none"
+                                className="w-full bg-gray-50 dark:bg-[#252525] border-gray-200 dark:border-gray-700 rounded-lg py-2.5 px-3 text-sm font-medium focus:ring-1 focus:ring-primary focus:border-primary outline-none cursor-pointer text-gray-900 dark:text-white appearance-none"
                             >
                                 <option value="">Select a bed...</option>
                                 {patients.map(p => (
@@ -122,7 +122,7 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
                                         value={opt.value}
                                         className="peer sr-only"
                                     />
-                                    <span className="px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs font-medium text-gray-700 dark:text-gray-300 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 transition-all">
+                                    <span className="px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs font-medium text-gray-700 dark:text-gray-300 peer-checked:bg-primary peer-checked:text-white peer-checked:border-primary transition-all">
                                         {opt.label}
                                     </span>
                                 </label>
@@ -135,24 +135,24 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
                     <div className="space-y-2">
                         <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">Workflow Type</label>
                         <div className="grid grid-cols-2 gap-3">
-                            <label className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 dark:has-[:checked]:bg-blue-900/20 transition-all">
+                            <label className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary/5 dark:has-[:checked]:bg-primary/20 transition-all">
                                 <input
                                     type="radio"
                                     {...register('workflow_type')}
                                     value="clinical"
-                                    className="text-blue-600 focus:ring-blue-500 border-gray-300"
+                                    className="text-primary focus:ring-primary border-gray-300"
                                 />
                                 <div className="flex flex-col">
                                     <span className="text-sm font-bold text-gray-900 dark:text-white">Clinical</span>
                                     <span className="text-[10px] text-gray-500">3-step verification</span>
                                 </div>
                             </label>
-                            <label className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 dark:has-[:checked]:bg-blue-900/20 transition-all">
+                            <label className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary/5 dark:has-[:checked]:bg-primary/20 transition-all">
                                 <input
                                     type="radio"
                                     {...register('workflow_type')}
                                     value="admin"
-                                    className="text-blue-600 focus:ring-blue-500 border-gray-300"
+                                    className="text-primary focus:ring-primary border-gray-300"
                                 />
                                 <div className="flex flex-col">
                                     <span className="text-sm font-bold text-gray-900 dark:text-white">Admin</span>
@@ -167,7 +167,7 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
                         <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">Description</label>
                         <textarea
                             {...register('description')}
-                            className="w-full bg-gray-50 dark:bg-[#252525] border-gray-200 dark:border-gray-700 rounded-lg p-3 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none placeholder-gray-400 dark:placeholder-gray-600 dark:text-white transition-all"
+                            className="w-full bg-gray-50 dark:bg-[#252525] border-gray-200 dark:border-gray-700 rounded-lg p-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none resize-none placeholder-gray-400 dark:placeholder-gray-600 dark:text-white transition-all"
                             placeholder="e.g. Consult Cardiology re: persistent arrhythmia..."
                             rows={4}
                         ></textarea>
@@ -186,7 +186,7 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-bold px-6 py-2.5 rounded-lg shadow-sm shadow-blue-500/30 transition-all flex items-center gap-2"
+                            className="bg-primary hover:bg-primary-hover disabled:opacity-50 text-white text-sm font-bold px-6 py-2.5 rounded-lg shadow-sm shadow-primary/30 transition-all flex items-center gap-2"
                         >
                             {isSubmitting ? (
                                 <span>Saving...</span>

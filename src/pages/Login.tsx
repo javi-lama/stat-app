@@ -46,8 +46,8 @@ const Login: React.FC = () => {
                         <span className="material-symbols-outlined text-white text-3xl">add_box</span>
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">Hospitalist Dashboard</h1>
-                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-widest">Internal Medicine Portal</p>
+                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">STAT.</h1>
+                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-widest">Hospital Workflow Manager</p>
                     </div>
                 </div>
 
