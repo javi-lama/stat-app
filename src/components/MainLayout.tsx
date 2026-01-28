@@ -64,6 +64,13 @@ const MainLayout: React.FC = () => {
                 <main className="flex-1 overflow-y-auto bg-background-light p-4 lg:p-6">
                     {/* Pass context to Dashboard */}
                     <Outlet context={{ patients, rawPatients, loading, error, refresh }} />
+
+                    {/* Premium Micro-Footer */}
+                    <footer className="py-6 mt-8 text-center">
+                        <p className="text-[10px] text-slate-300 dark:text-slate-600 font-light tracking-wider">
+                            STAT. © 2026 | Engineered for High-Performance Medicine by Divini Technologies
+                        </p>
+                    </footer>
                 </main>
 
                 <aside className="w-80 2xl:w-96 z-20 hidden xl:flex flex-col border-l border-border-light bg-surface-light">

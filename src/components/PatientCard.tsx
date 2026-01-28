@@ -350,7 +350,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
                                 </div>
 
                                 {/* Column 3: Actions (Static reservation, no overlap) */}
-                                <div className="flex items-center gap-1 opacity-0 group-hover/task:opacity-100 transition-opacity duration-200 pl-2 bg-surface-light flex-shrink-0">
+                                <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover/task:opacity-100 transition-opacity duration-200 pl-2 bg-surface-light flex-shrink-0">
                                     <button
                                         onClick={() => handleEditTask(task.id, task.description)}
                                         className="text-[10px] text-secondary hover:text-primary font-bold uppercase tracking-wide"
