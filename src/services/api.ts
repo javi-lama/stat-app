@@ -200,10 +200,31 @@ export const api = {
         }
     },
 
-    async updateTaskDescription(taskId: string, newDescription: string): Promise<void> {
+    async updateTaskDescription(taskId: string, newDescription: string, taskType: PatientTask['type']): Promise<void> {
+        let finalDescription = newDescription;
+
+        // State Preservation: Re-apply tags for Polyfill Types
+        // This ensures filter/icon logic survives the edit
+        if (taskType === 'consult' && !newDescription.startsWith('[Consult]')) {
+            finalDescription = `[Consult] ${newDescription}`;
+        } else if (taskType === 'paperwork' && !newDescription.startsWith('[Paperwork]')) {
+            finalDescription = `[Paperwork] ${newDescription}`;
+        } else if (taskType === 'supervision' && !newDescription.startsWith('[Supervision]')) {
+            finalDescription = `[Supervision] ${newDescription}`;
+        }
+
+        // For Native Types (Lab, Imaging, etc), we just send the description.
+        // We do NOT update the 'type' column explicitly unless we want to enforce consistency,
+        // but the bug report focuses on description edit clearing the category.
+        // Sending { description: ... } is sufficient for native types.
+
         const { error } = await supabase
             .from('tasks')
-            .update({ description: newDescription })
+            .update({
+                description: finalDescription,
+                // Optional: We could enforce type preservation here if we wanted:
+                // type: (taskType === 'consult' || taskType === 'paperwork' || taskType === 'supervision') ? 'admin' : taskType 
+            })
             .eq('id', taskId);
 
         if (error) {

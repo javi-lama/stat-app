@@ -28,7 +28,7 @@ const getEmojiForCategory = (type: string): string => {
     return CATEGORY_EMOJIS[key] || CATEGORY_EMOJIS['default'];
 };
 
-const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 
 export const generateHandoffText = (patients: PatientWithTasks[], mode: 'all' | 'missing'): string => {
     let report = '';
@@ -95,15 +95,17 @@ export const generateHandoffText = (patients: PatientWithTasks[], mode: 'all' | 
         // Build Task Lines
         for (const task of tasksToInclude) {
             const emoji = getEmojiForCategory(task.type);
-            const category = capitalize(task.type);
+
             const desc = task.description;
 
-            // Step Visualizer: ✅ ⬜️
+            // Step Visualizer: ✅⬜️ (Compacted)
             const stepsVisual = (task.steps || [])
                 .map(s => s.value ? '✅' : '⬜️')
-                .join(' ');
+                .join(''); // Removed space joiner
 
-            report += `- ${emoji} ${category}: ${desc} ${stepsVisual}\n`;
+            // Format: [Emoji] [Description] (Compacted)
+            // Removed "${category}: "
+            report += `- ${emoji} ${desc} ${stepsVisual}\n`;
         }
     }
 

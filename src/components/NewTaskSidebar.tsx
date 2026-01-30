@@ -175,7 +175,7 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
                     </div>
 
                     {/* Actions */}
-                    <div className="pt-4 flex items-center justify-between">
+                    <div className="flex items-center justify-between">
                         <button
                             type="button"
                             onClick={() => reset()}

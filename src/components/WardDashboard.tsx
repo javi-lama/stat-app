@@ -394,7 +394,7 @@ const WardDashboard: React.FC = () => {
                             relative group border text-sm font-bold py-2 px-4 rounded-lg shadow-sm flex items-center gap-2 transition-all
                             ${isConfigMode
                                 ? 'bg-primary border-primary text-white hover:bg-primary/90'
-                                : 'bg-surface-light dark:bg-surface-dark border-secondary text-secondary hover:border-primary hover:text-primary'
+                                : 'bg-surface-light dark:bg-surface-dark border-primary text-primary hover:bg-primary hover:text-white'
                             }
                         `}
                     >

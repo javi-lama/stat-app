@@ -113,7 +113,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
     };
 
     // Task Description Edit Handler
-    const handleEditTask = async (taskId: string, currentDescription: string) => {
+    const handleEditTask = async (taskId: string, currentDescription: string, taskType: PatientTask['type']) => {
         const newDescription = window.prompt("Edit task description:", currentDescription);
         if (newDescription === null || newDescription === currentDescription) return;
         if (newDescription.trim() === "") return;
@@ -126,7 +126,8 @@ const PatientCard: React.FC<PatientCardProps> = ({
         setTasksState(updatedTasks);
 
         try {
-            await api.updateTaskDescription(taskId, newDescription);
+            // Fix: Pass taskType so API knows to re-apply Polyfill Tags (e.g. [Consult])
+            await api.updateTaskDescription(taskId, newDescription, taskType);
             toast.success('Task description updated');
         } catch (error) {
             console.error('Task update failed:', error);
@@ -134,6 +135,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
             toast.error('Failed to update task');
         }
     };
+
 
     // Task Delete Handler
     const handleDeleteTask = async (taskId: string) => {
@@ -309,7 +311,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
                                             'material-symbols-outlined text-lg shrink-0 mt-0.5',
                                             // Unified Theme Colors
                                             task.type === 'lab' && 'text-primary',
-                                            task.type === 'imaging' && 'text-secondary',
+                                            task.type === 'imaging' && 'text-primary',
                                             // Fallback for others to use Secondary or Primary
                                             !['lab', 'imaging'].includes(task.type) && 'text-primary'
                                         )}
@@ -352,7 +354,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
                                 {/* Column 3: Actions (Static reservation, no overlap) */}
                                 <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover/task:opacity-100 transition-opacity duration-200 pl-2 bg-surface-light flex-shrink-0">
                                     <button
-                                        onClick={() => handleEditTask(task.id, task.description)}
+                                        onClick={() => handleEditTask(task.id, task.description, task.type)}
                                         className="text-[10px] text-secondary hover:text-primary font-bold uppercase tracking-wide"
                                     >
                                         Edit
