@@ -36,11 +36,9 @@ const MainLayout: React.FC = () => {
         <div className="flex flex-col h-screen bg-background-light text-text-main font-display overflow-hidden">
             {/* Header */}
             <header className="flex-none flex items-center justify-between border-b border-border-light bg-surface-light px-4 sm:px-8 py-4 z-30 shadow-sm relative">
-                <div className="flex items-center gap-4">
-                    <div className="size-8 text-primary flex items-center justify-center bg-primary/10 rounded-lg">
-                        <span className="material-symbols-outlined text-2xl">local_hospital</span>
-                    </div>
-                    <div>
+                <div className="flex items-center gap-3">
+                    <img src="/logo.svg" alt="Logo" className="w-11 h-11" />
+                    <div className="flex flex-col justify-center">
                         <h2 className="text-xl font-bold leading-tight tracking-tight">STAT.</h2>
                         <p className="text-xs text-secondary font-medium uppercase tracking-wider">Medicina A2 • Internal Medicine</p>
                     </div>

@@ -40,11 +40,8 @@ const Login: React.FC = () => {
     return (
         <div className="bg-[#F8FAFB] dark:bg-[#0F172A] min-h-screen flex flex-col items-center justify-center p-4 transition-colors duration-200 font-sans">
             <main className="w-full max-w-[440px] z-10 relative">
-                <div className="flex items-center justify-center gap-3 mb-10">
-                    <div className="w-12 h-12 bg-[#30889E] flex items-center justify-center rounded-xl shadow-lg shadow-[#30889E]/20">
-                        {/* Fix: Class name */}
-                        <span className="material-symbols-outlined text-white text-3xl">add_box</span>
-                    </div>
+                <div className="flex flex-col items-center justify-center mb-10 text-center">
+                    <img src="/logo.svg" alt="STAT. Logo" className="w-24 h-24 mb-4 drop-shadow-lg" />
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">STAT.</h1>
                         <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-widest">Hospital Workflow Manager</p>
