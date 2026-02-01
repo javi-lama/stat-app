@@ -214,6 +214,99 @@ export const api = {
         }
     },
 
+    /**
+     * Smart Carry-Over: Imports pending tasks from Yesterday to Today.
+     * Checks for duplicates to prevent double-importing.
+     */
+    async importPendingTasksFromYesterday(targetDate: Date): Promise<{ count: number; skipped: boolean }> {
+        // 1. Calculate Dates
+        const yesterday = new Date(targetDate);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        const targetDateStr = formatDateForDB(targetDate);
+        const yesterdayStr = formatDateForDB(yesterday);
+
+        // 2. Fetch Data (Reuse Census Logic for consistency)
+        // We need raw tasks really, but getWardCensus gives us patient-grouped tasks.
+        // It's cleaner to reuse the *logic* of getWardCensus but we are inside api,
+        // so we can call getWardCensus directly if we want, OR just fetch tasks.
+        // Let's call getWardCensus to rely on the "Active Date" filtering logic we just mocked/fixed.
+        const [yesterdayCensus, todayCensus] = await Promise.all([
+            this.getWardCensus(yesterdayStr),
+            this.getWardCensus(targetDateStr)
+        ]);
+
+        // 3. Extract Tasks
+        // Flatten tasks from all patients
+        const yesterdayTasks: PatientTask[] = yesterdayCensus.flatMap(p => p.tasks || []);
+        const todayTasks: PatientTask[] = todayCensus.flatMap(p => p.tasks || []);
+
+        // 4. Filter Pending from Yesterday
+        const pendingToImport = yesterdayTasks.filter(t => !t.is_completed);
+
+        if (pendingToImport.length === 0) {
+            return { count: 0, skipped: false };
+        }
+
+        // 5. Check Duplicates (Safety Guard)
+        // If ANY pending task from yesterday matches a task in today (by description + patient), abort.
+        // We need patient_id. PatientTask has 'id', but not 'patientId' explicitly in interface usually?
+        // Wait, PatientTask interface in 'types.ts' might not have patientId?
+        // Let's check getWardCensus adapter.
+        // adaptPatientToCard maps tasks. The task object has 'id'.
+        // It does NOT have patient_id in PatientTask interface (UI).
+        // The SupabaseTask HAS patient_id.
+        // So relying on getWardCensus (UI Objects) loses patient_id context unless we map it.
+        // Strategy Change: Fetch RAW tasks using the same filter logic, or map patient_id.
+
+        // Simpler Strategy: Fetch Raw Tasks inside this function using the same robust filter.
+        const { data: allTasksRaw, error } = await supabase.from('tasks').select('*');
+        if (error) throw error;
+
+        // Filter for Yesterday (Pending)
+        const pendingRawYesterday = allTasksRaw.filter((t: SupabaseTask) => {
+            const tDate = t.due_date ? String(t.due_date).substring(0, 10) : formatDateForDB(new Date(t.created_at));
+            return tDate === yesterdayStr && !t.is_completed;
+        });
+
+        // Filter for Today (All)
+        const allRawToday = allTasksRaw.filter((t: SupabaseTask) => {
+            const tDate = t.due_date ? String(t.due_date).substring(0, 10) : formatDateForDB(new Date(t.created_at));
+            return tDate === targetDateStr;
+        });
+
+        // Duplicate Check
+        const hasDuplicates = pendingRawYesterday.some(yTask => {
+            return allRawToday.some(tTask =>
+                tTask.patient_id === yTask.patient_id &&
+                tTask.description === yTask.description &&
+                tTask.type === yTask.type // strict check
+            );
+        });
+
+        if (hasDuplicates) {
+            return { count: 0, skipped: true };
+        }
+
+        // 6. Bulk Insert
+        if (pendingRawYesterday.length > 0) {
+            const newTasks = pendingRawYesterday.map(t => ({
+                patient_id: t.patient_id,
+                description: t.description,
+                type: t.type,
+                is_completed: false,
+                steps: t.steps, // Preserve progress checkboxes? No, request says "Mantener IGUAL".
+                // "checklist_status: Mantener IGUAL al original"
+                due_date: targetDateStr
+            }));
+
+            const { error: insertError } = await supabase.from('tasks').insert(newTasks);
+            if (insertError) throw insertError;
+        }
+
+        return { count: pendingRawYesterday.length, skipped: false };
+    },
+
     async updatePatientDiagnosis(patientId: string, newDiagnosis: string): Promise<void> {
         const { error } = await supabase
             .from('patients')

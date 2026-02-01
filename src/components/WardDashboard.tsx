@@ -279,28 +279,71 @@ const WardDashboard: React.FC = () => {
 
                     {/* DATE NAVIGATION */}
                     <div className={cn(
-                        "flex items-center bg-surface-light dark:bg-surface-dark rounded-lg shadow-sm border p-1 transition-colors",
-                        !isToday ? "border-amber-400/50 bg-amber-50/50 dark:bg-amber-900/10" : "border-border-light dark:border-border-dark"
+                        "flex items-center gap-1 bg-surface-light dark:bg-surface-dark rounded-lg shadow-sm border py-1 px-2 transition-colors",
+                        // Match height/border style with Filter button roughly
+                        // Filter is py-2 px-4.
+                        // We want the container to look consistent.
+                        // Let's use the same border color as Filter: border-primary
+                        // But maybe we want it less aggressive. The user loves the Filter button.
+                        // Let's use transparent border usually, or border-primary if we want to match EXACTLY.
+                        // Actually, let's make it look like a button group.
+                        !isToday ? "border-amber-400 bg-amber-50 dark:bg-amber-900/10" : "border-primary"
                     )}>
                         <button
                             onClick={handlePrevDay}
-                            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                            className={cn(
+                                "p-1 rounded-md transition-colors",
+                                !isToday ? "hover:bg-amber-200/50 text-amber-700" : "hover:bg-primary hover:text-white text-primary"
+                            )}
                         >
-                            <span className="material-symbols-outlined text-xl text-secondary">chevron_left</span>
+                            <span className="material-symbols-outlined text-xl">chevron_left</span>
                         </button>
                         <span className={cn(
-                            "mx-2 text-sm font-bold min-w-[90px] text-center select-none",
-                            !isToday ? "text-amber-700 dark:text-amber-500" : "text-text-main"
+                            "mx-2 text-sm font-bold min-w-[100px] text-center select-none",
+                            !isToday ? "text-amber-700 dark:text-amber-500" : "text-primary"
                         )}>
                             {formatDateForUI(selectedDate)}
                         </span>
                         <button
                             onClick={handleNextDay}
-                            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                            className={cn(
+                                "p-1 rounded-md transition-colors",
+                                !isToday ? "hover:bg-amber-200/50 text-amber-700" : "hover:bg-primary hover:text-white text-primary"
+                            )}
                         >
-                            <span className="material-symbols-outlined text-xl text-secondary">chevron_right</span>
+                            <span className="material-symbols-outlined text-xl">chevron_right</span>
                         </button>
                     </div>
+
+                    <div className="w-px h-8 bg-border-light mx-1"></div>
+
+                    {/* Import Pending Button (Only Today) */}
+                    {isToday && (
+                        <button
+                            onClick={async () => {
+                                const toastId = toast.loading('Importing pending tasks...');
+                                try {
+                                    const result = await api.importPendingTasksFromYesterday(selectedDate);
+                                    if (result.skipped) {
+                                        toast.error('Tasks already imported today!', { id: toastId });
+                                    } else if (result.count === 0) {
+                                        toast.info('No pending tasks from yesterday.', { id: toastId });
+                                    } else {
+                                        toast.success(`Imported ${result.count} tasks from yesterday.`, { id: toastId });
+                                        refresh(); // Reload Dashboard
+                                    }
+                                } catch (error) {
+                                    console.error(error);
+                                    toast.error('Failed to import tasks.', { id: toastId });
+                                }
+                            }}
+                            className="relative group border border-primary text-sm font-bold py-2 px-4 rounded-lg shadow-sm flex items-center gap-2 transition-all bg-surface-light dark:bg-surface-dark text-primary hover:bg-primary hover:text-white"
+                            title="Import pending tasks from yesterday"
+                        >
+                            <span className="material-symbols-outlined text-[18px]">autorenew</span>
+                            <span className="hidden sm:inline">Import Pending</span>
+                        </button>
+                    )}
 
                     <div className="w-px h-8 bg-border-light mx-1"></div>
 
