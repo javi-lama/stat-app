@@ -231,15 +231,12 @@ export const api = {
         // It's cleaner to reuse the *logic* of getWardCensus but we are inside api,
         // so we can call getWardCensus directly if we want, OR just fetch tasks.
         // Let's call getWardCensus to rely on the "Active Date" filtering logic we just mocked/fixed.
-        const [yesterdayCensus, todayCensus] = await Promise.all([
-            this.getWardCensus(yesterdayStr),
-            this.getWardCensus(targetDateStr)
-        ]);
+        const yesterdayCensus = await this.getWardCensus(yesterdayStr);
 
         // 3. Extract Tasks
         // Flatten tasks from all patients
         const yesterdayTasks: PatientTask[] = yesterdayCensus.flatMap(p => p.tasks || []);
-        const todayTasks: PatientTask[] = todayCensus.flatMap(p => p.tasks || []);
+
 
         // 4. Filter Pending from Yesterday
         const pendingToImport = yesterdayTasks.filter(t => !t.is_completed);
