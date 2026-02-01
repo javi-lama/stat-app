@@ -1,6 +1,8 @@
 import { supabase } from '../supabaseClient';
+import { formatDateForDB } from '../lib/dateUtils';
 import type { PatientCardProps, PatientTask } from '../types';
 
+// DB Types (Raw from Supabase)
 // DB Types (Raw from Supabase)
 export interface SupabaseTask {
     id: string;
@@ -29,31 +31,54 @@ export const api = {
     supabase,
 
     /**
-     * Fetches all patients and their active tasks.
+     * Fetches all patients (beds) and their active tasks for a SPECIFIC DATE.
+     * Strategy: Split Query.
+     * 1. Get ALL Beds (Patients).
+     * 2. Get Tasks for the selected DATE.
+     * 3. Map Tasks to Beds.
      */
-    async getWardCensus(): Promise<SupabasePatient[]> {
-        const { data, error } = await supabase
+    async getWardCensus(dateStr: string): Promise<SupabasePatient[]> {
+        // 1. Fetch All Patients (Beds) - Persistent
+        const { data: patients, error: patientError } = await supabase
             .from('patients')
-            .select(`
-                *,
-                tasks (*)
-            `)
-        // .order('bed_number', { ascending: true }); // Removed to avoid string sort (100 < 87)
+            .select('*');
 
-
-        if (error) {
-            console.error('Error fetching ward census:', error);
-            throw error;
+        if (patientError) {
+            console.error('Error fetching patients:', patientError);
+            throw patientError;
         }
 
+        // 2. Fetch Tasks (All or Filtered by Due Date if possible, but Client Side is safer for fallback)
+        const { data: tasksRaw, error: taskError } = await supabase
+            .from('tasks')
+            .select('*');
+
+        if (taskError) {
+            console.error('Error fetching tasks:', taskError);
+            throw taskError;
+        }
+
+        // 3. Map Tasks to Patients (Client-Side Filtering)
+        const patientsWithTasks = patients?.map(patient => {
+            const patientTasks = tasksRaw?.filter((t: SupabaseTask) => {
+                const isActiveDate = (t.due_date ? String(t.due_date).substring(0, 10) : formatDateForDB(new Date(t.created_at))) === dateStr;
+                return t.patient_id === patient.id && isActiveDate;
+            }) || [];
+
+            return {
+                ...patient,
+                tasks: patientTasks
+            };
+        });
+
         // Numeric Sort for correct ordering (89 -> 100)
-        if (data) {
-            data.sort((a, b) => {
+        if (patientsWithTasks) {
+            patientsWithTasks.sort((a, b) => {
                 return a.bed_number.localeCompare(b.bed_number, undefined, { numeric: true, sensitivity: 'base' });
             });
         }
 
-        return data as SupabasePatient[];
+        return patientsWithTasks as SupabasePatient[];
     },
 
     /**
@@ -95,6 +120,7 @@ export const api = {
                 type: finalType,
                 steps: t.steps || [],
                 created_at: t.created_at,
+                task_date: t.due_date || formatDateForDB(new Date(t.created_at))
             };
         });
 
@@ -137,6 +163,7 @@ export const api = {
         description: string;
         category: 'lab' | 'imaging' | 'admin' | 'procedure' | 'consult' | 'paperwork' | 'supervision';
         type: 'clinical' | 'admin'; // workflow_type
+        task_date: string; // YYYY-MM-DD
     }): Promise<void> {
         let steps: { label: string; value: boolean }[] = [];
 
@@ -177,7 +204,8 @@ export const api = {
                 description: dbDescription,
                 type: dbType,
                 is_completed: false, // Initial state always false
-                steps: steps
+                steps: steps,
+                due_date: payload.task_date
             });
 
         if (error) {

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { cn } from '../lib/utils';
 import PatientCard from './PatientCard';
 import { api } from '../services/api';
 import type { Patient, PatientTask } from '../types';
@@ -7,17 +8,26 @@ import { calculateTaskProgress } from '../lib/progressUtils';
 import { generateHandoffText } from '../lib/handoffGenerator';
 import { toast } from 'sonner';
 
+import { formatDateForUI, addDays } from '../lib/dateUtils';
+
 interface DashboardContextType {
     patients: (Patient & { tasks: PatientTask[] })[];
     rawPatients: any[]; // refined type would be better if available
     loading: boolean;
     error: string | null;
     refresh: () => void;
+    selectedDate: Date;
+    setSelectedDate: (date: Date) => void;
 }
 
 const WardDashboard: React.FC = () => {
     // Consume Context from MainLayout
-    const { patients, loading, error, refresh } = useOutletContext<DashboardContextType>();
+    const { patients, loading, error, refresh, selectedDate, setSelectedDate } = useOutletContext<DashboardContextType>();
+
+    // Date Navigation Handlers
+    const handlePrevDay = () => setSelectedDate(addDays(selectedDate, -1));
+    const handleNextDay = () => setSelectedDate(addDays(selectedDate, 1));
+    const isToday = new Date().toDateString() === selectedDate.toDateString();
 
     // State for Smart Filters
     const [showFilterMenu, setShowFilterMenu] = React.useState(false);
@@ -264,8 +274,36 @@ const WardDashboard: React.FC = () => {
             {/* Controls Bar: Filters & Admin */}
             <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
 
-                {/* Left Side: Filters + Handoff */}
+                {/* Left Side: Filters + Handoff + Date Nav */}
                 <div className="flex flex-wrap items-center gap-3">
+
+                    {/* DATE NAVIGATION */}
+                    <div className={cn(
+                        "flex items-center bg-surface-light dark:bg-surface-dark rounded-lg shadow-sm border p-1 transition-colors",
+                        !isToday ? "border-amber-400/50 bg-amber-50/50 dark:bg-amber-900/10" : "border-border-light dark:border-border-dark"
+                    )}>
+                        <button
+                            onClick={handlePrevDay}
+                            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                        >
+                            <span className="material-symbols-outlined text-xl text-secondary">chevron_left</span>
+                        </button>
+                        <span className={cn(
+                            "mx-2 text-sm font-bold min-w-[90px] text-center select-none",
+                            !isToday ? "text-amber-700 dark:text-amber-500" : "text-text-main"
+                        )}>
+                            {formatDateForUI(selectedDate)}
+                        </span>
+                        <button
+                            onClick={handleNextDay}
+                            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                        >
+                            <span className="material-symbols-outlined text-xl text-secondary">chevron_right</span>
+                        </button>
+                    </div>
+
+                    <div className="w-px h-8 bg-border-light mx-1"></div>
+
                     {/* Smart Filters */}
                     <div className="relative">
                         <div className="flex items-center gap-3">

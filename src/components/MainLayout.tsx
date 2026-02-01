@@ -6,8 +6,11 @@ import NewTaskSidebar from './NewTaskSidebar';
 import { api } from '../services/api';
 
 const MainLayout: React.FC = () => {
-    // Lifted State
-    const { patients, rawPatients, loading, error, refresh } = useRealtimeCensus();
+    // Lifted State: Date Navigation
+    const [selectedDate, setSelectedDate] = React.useState(new Date());
+
+    // Census Data depends on Date
+    const { patients, rawPatients, loading, error, refresh } = useRealtimeCensus(selectedDate);
 
     // Prepare data for sidebar
     const sidebarPatients = rawPatients.map(p => ({
@@ -63,7 +66,7 @@ const MainLayout: React.FC = () => {
             <div className="flex flex-1 overflow-hidden relative">
                 <main className="flex-1 overflow-y-auto bg-background-light p-4 lg:p-6">
                     {/* Pass context to Dashboard */}
-                    <Outlet context={{ patients, rawPatients, loading, error, refresh }} />
+                    <Outlet context={{ patients, rawPatients, loading, error, refresh, selectedDate, setSelectedDate }} />
 
                     {/* Premium Micro-Footer */}
                     <footer className="py-6 mt-8 text-center">
@@ -75,7 +78,7 @@ const MainLayout: React.FC = () => {
 
                 <aside className="w-80 2xl:w-96 z-20 hidden xl:flex flex-col border-l border-border-light bg-surface-light">
                     {/* Sidebar Component fills the aside (Desktop) */}
-                    <NewTaskSidebar patients={sidebarPatients} onTaskCreated={refresh} />
+                    <NewTaskSidebar patients={sidebarPatients} onTaskCreated={refresh} selectedDate={selectedDate} />
                 </aside>
 
 
@@ -117,7 +120,7 @@ const MainLayout: React.FC = () => {
                                     <NewTaskSidebar patients={sidebarPatients} onTaskCreated={() => {
                                         refresh();
                                         setIsMobileTaskOpen(false); // Close on success
-                                    }} />
+                                    }} selectedDate={selectedDate} />
                                 </div>
                             </div>
                         </div>

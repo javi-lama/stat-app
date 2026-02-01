@@ -19,6 +19,7 @@ export interface PatientTask {
     steps?: TaskStep[]; // Updated to object array
     type: 'lab' | 'imaging' | 'admin' | 'procedure' | 'consult' | 'paperwork' | 'supervision';
     created_at: string;
+    task_date?: string; // YYYY-MM-DD
 }
 
 export interface PatientCardProps {

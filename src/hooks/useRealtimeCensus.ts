@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../services/api';
 import type { PatientCardProps } from '../types';
+import { formatDateForDB } from '../lib/dateUtils';
 
-export const useRealtimeCensus = () => {
+export const useRealtimeCensus = (selectedDate: Date) => {
     const [patients, setPatients] = useState<PatientCardProps[]>([]);
     const [rawPatients, setRawPatients] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -11,7 +12,8 @@ export const useRealtimeCensus = () => {
     const fetchCensus = useCallback(async () => {
         try {
             console.log('[Census] Fetching latest data...');
-            const raw = await api.getWardCensus();
+            const dateStr = formatDateForDB(selectedDate);
+            const raw = await api.getWardCensus(dateStr);
             setRawPatients(raw);
             const adapted = raw.map(api.adaptPatientToCard);
             setPatients(adapted);
@@ -22,7 +24,7 @@ export const useRealtimeCensus = () => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [selectedDate]);
 
     useEffect(() => {
         // 1. Initial Fetch
