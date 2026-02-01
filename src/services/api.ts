@@ -49,9 +49,7 @@ export const api = {
         // Numeric Sort for correct ordering (89 -> 100)
         if (data) {
             data.sort((a, b) => {
-                const numA = parseInt(a.bed_number) || 0;
-                const numB = parseInt(b.bed_number) || 0;
-                return numA - numB;
+                return a.bed_number.localeCompare(b.bed_number, undefined, { numeric: true, sensitivity: 'base' });
             });
         }
 
@@ -196,6 +194,18 @@ export const api = {
 
         if (error) {
             console.error('Error updating diagnosis:', error);
+            throw error;
+        }
+    },
+
+    async updateBedNumber(patientId: string, newBedNumber: string): Promise<void> {
+        const { error } = await supabase
+            .from('patients')
+            .update({ bed_number: newBedNumber })
+            .eq('id', patientId);
+
+        if (error) {
+            console.error('Error updating bed number:', error);
             throw error;
         }
     },

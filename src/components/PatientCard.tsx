@@ -76,6 +76,11 @@ const PatientCard: React.FC<PatientCardProps> = ({
     const [diagnosisText, setDiagnosisText] = useState(diagnosis);
     const diagnosisInputRef = useRef<HTMLInputElement>(null);
 
+    // Bed Editing State
+    const [isEditingBed, setIsEditingBed] = useState(false);
+    const [bedNumberText, setBedNumberText] = useState(bedNumber);
+    const bedInputRef = useRef<HTMLInputElement>(null);
+
     // Sync state with props (Fix for Realtime/Refetch updates)
     React.useEffect(() => {
         setTasksState(initialTasks || []);
@@ -90,6 +95,16 @@ const PatientCard: React.FC<PatientCardProps> = ({
             diagnosisInputRef.current.focus();
         }
     }, [isEditingDiagnosis]);
+
+    React.useEffect(() => {
+        setBedNumberText(bedNumber);
+    }, [bedNumber]);
+
+    React.useEffect(() => {
+        if (isEditingBed && bedInputRef.current) {
+            bedInputRef.current.focus();
+        }
+    }, [isEditingBed]);
 
     // Diagnosis Save Handler
     const handleSaveDiagnosis = async () => {
@@ -109,6 +124,25 @@ const PatientCard: React.FC<PatientCardProps> = ({
             console.error('Diagnosis update failed:', error);
             setDiagnosisText(diagnosis); // Rollback
             toast.error('Failed to update diagnosis');
+        }
+    };
+
+    // Bed Save Handler
+    const handleSaveBedNumber = async () => {
+        if (bedNumberText.trim() === bedNumber) {
+            setIsEditingBed(false);
+            return;
+        }
+
+        try {
+            setIsEditingBed(false);
+            await api.updateBedNumber(patientId, bedNumberText);
+            toast.success('Bed number updated');
+            if (onRefresh) onRefresh(); // Trigger re-sort
+        } catch (error) {
+            console.error('Bed update failed:', error);
+            setBedNumberText(bedNumber); // Rollback
+            toast.error('Failed to update bed number');
         }
     };
 
@@ -230,14 +264,40 @@ const PatientCard: React.FC<PatientCardProps> = ({
             )}
 
             <div className="flex justify-between items-center mb-3">
-                <h3
-                    className={cn(
-                        "text-xl font-bold text-text-main transition-colors",
-                        isReady ? "text-success" : "group-hover:text-primary"
-                    )}
-                >
-                    {bedNumber}
-                </h3>
+                {isEditingBed || isConfigMode ? (
+                    <input
+                        ref={bedInputRef}
+                        type="text"
+                        value={bedNumberText}
+                        onChange={(e) => setBedNumberText(e.target.value)}
+                        onBlur={handleSaveBedNumber}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSaveBedNumber()}
+                        className={cn(
+                            "text-xl font-bold text-text-main bg-transparent focus:outline-none transition-all w-16",
+                            isConfigMode
+                                ? "bg-white border rounded px-1 border-primary/50 shadow-sm"
+                                : "border-b border-primary"
+                        )}
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                ) : (
+                    <div
+                        className="flex items-center gap-2 cursor-pointer group/bed"
+                        onClick={() => setIsEditingBed(true)}
+                    >
+                        <h3
+                            className={cn(
+                                "text-xl font-bold text-text-main transition-colors",
+                                isReady ? "text-success" : "group-hover:text-primary"
+                            )}
+                        >
+                            {bedNumberText}
+                        </h3>
+                        <span className="material-symbols-outlined text-[14px] text-secondary opacity-0 group-hover/bed:opacity-100 transition-opacity">
+                            edit
+                        </span>
+                    </div>
+                )}
 
                 <div className="flex items-center gap-3">
                     {/* Progress Bar */}
