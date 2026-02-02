@@ -13,6 +13,7 @@ export interface SupabaseTask {
     due_date: string;
     steps?: { label: string; value: boolean }[] | any; // JSONB in DB
     created_at: string;
+    deleted_at?: string | null; // Soft Delete Column
 }
 
 export interface SupabasePatient {
@@ -49,9 +50,11 @@ export const api = {
         }
 
         // 2. Fetch Tasks (All or Filtered by Due Date if possible, but Client Side is safer for fallback)
+        // Add Soft Delete Filter: .is('deleted_at', null)
         const { data: tasksRaw, error: taskError } = await supabase
             .from('tasks')
-            .select('*');
+            .select('*')
+            .is('deleted_at', null);
 
         if (taskError) {
             console.error('Error fetching tasks:', taskError);
@@ -257,7 +260,8 @@ export const api = {
         // Strategy Change: Fetch RAW tasks using the same filter logic, or map patient_id.
 
         // Simpler Strategy: Fetch Raw Tasks inside this function using the same robust filter.
-        const { data: allTasksRaw, error } = await supabase.from('tasks').select('*');
+        // Add Soft Delete Filter Here too just in case
+        const { data: allTasksRaw, error } = await supabase.from('tasks').select('*').is('deleted_at', null);
         if (error) throw error;
 
         // Filter for Yesterday (Pending)
@@ -361,11 +365,16 @@ export const api = {
         }
     },
 
-    async deleteTask(taskId: string): Promise<void> {
-        const { error } = await supabase
-            .from('tasks')
-            .delete()
-            .eq('id', taskId);
+    async deleteTask(taskId: string, dateStr?: string): Promise<void> {
+        // Soft Delete: Update deleted_at instead of DELETE
+        let query = supabase.from('tasks').update({ deleted_at: new Date().toISOString() }).eq('id', taskId);
+
+        // Strict safety check requested by user
+        if (dateStr) {
+            query = query.eq('due_date', dateStr);
+        }
+
+        const { error } = await query;
 
         if (error) {
             console.error('Error deleting task:', error);
@@ -374,16 +383,53 @@ export const api = {
     },
 
     /**
-     * DEBUG ONLY: Deletes all tasks from the database.
+     * SAFE Bulk Delete: Soft Deletes tasks for a specific date.
+     * Returns the IDs of the deleted tasks for Undo.
      */
-    async debug_deleteAllTasks(): Promise<void> {
+    async clearTasksForDate(dateStr: string): Promise<string[]> {
+        // 1. Fetch IDs to be deleted (for Undo)
+        const { data: tasksToDelete, error: fetchError } = await supabase
+            .from('tasks')
+            .select('id')
+            .eq('due_date', dateStr)
+            .is('deleted_at', null); // Only select active tasks
+
+        if (fetchError) {
+            console.error('Error fetching tasks for deletion:', fetchError);
+            throw fetchError;
+        }
+
+        if (!tasksToDelete || tasksToDelete.length === 0) return [];
+
+        const ids = tasksToDelete.map(t => t.id);
+
+        // 2. Perform Soft Delete
         const { error } = await supabase
             .from('tasks')
-            .delete()
-            .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all where ID is not nil (effectively all)
+            .update({ deleted_at: new Date().toISOString() })
+            .in('id', ids);
 
         if (error) {
-            console.error('Error clearing tasks:', error);
+            console.error('Error clearing tasks for date:', error);
+            throw error;
+        }
+
+        return ids;
+    },
+
+    /**
+     * Restore Tasks: Undoes soft delete for given IDs.
+     */
+    async restoreTasks(ids: string[]): Promise<void> {
+        if (!ids || ids.length === 0) return;
+
+        const { error } = await supabase
+            .from('tasks')
+            .update({ deleted_at: null })
+            .in('id', ids);
+
+        if (error) {
+            console.error('Error restoring tasks:', error);
             throw error;
         }
     },

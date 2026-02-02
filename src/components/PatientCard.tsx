@@ -172,7 +172,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
 
 
     // Task Delete Handler
-    const handleDeleteTask = async (taskId: string) => {
+    const handleDeleteTask = async (taskId: string, taskDate: string) => {
         if (!window.confirm("Are you sure you want to delete this task?")) return;
 
         // Optimistic Update
@@ -181,8 +181,39 @@ const PatientCard: React.FC<PatientCardProps> = ({
         setTasksState(updatedTasks);
 
         try {
-            await api.deleteTask(taskId);
-            toast.success('Task deleted');
+            await api.deleteTask(taskId, taskDate);
+
+            toast.success('Task deleted', {
+                action: {
+                    label: 'UNDO',
+                    onClick: async () => {
+                        // Optimistic Restore
+                        setTasksState(previousTasks);
+                        const loadingToast = toast.loading("Restoring task...");
+                        try {
+                            await api.restoreTasks([taskId]);
+                            // If parent refresh is available, trigger it to be safe, 
+                            // though local state restore handles the UI immediately.
+                            if (onRefresh) onRefresh();
+                            toast.dismiss(loadingToast);
+                            toast.success("Task restored");
+                        } catch (err) {
+                            console.error("Restore failed", err);
+                            // Rollback (item is technically gone from DB if restore fails, so remove it again)
+                            setTasksState(updatedTasks);
+                            toast.dismiss(loadingToast);
+                            toast.error("Failed to restore task");
+                        }
+                    }
+                },
+                duration: 5000,
+            });
+
+            // Allow parent to refresh to ensure counts are accurate if needed
+            // But we don't want to cause a flicker if not necessary.
+            // Actually, we SHOULD refresh parent to update top stats (Progress Bar).
+            if (onRefresh) onRefresh();
+
         } catch (error) {
             console.error('Task deletion failed:', error);
             setTasksState(previousTasks); // Rollback
@@ -420,7 +451,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
                                         Edit
                                     </button>
                                     <button
-                                        onClick={() => handleDeleteTask(task.id)}
+                                        onClick={() => handleDeleteTask(task.id, task.task_date || '')}
                                         className="text-[10px] text-red-400 hover:text-red-500 font-bold uppercase tracking-wide"
                                     >
                                         Delete

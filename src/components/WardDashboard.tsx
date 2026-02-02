@@ -117,12 +117,40 @@ const WardDashboard: React.FC = () => {
     // --- Bed CRUD Logic ---
 
     const handleClearTasks = async () => {
-        if (!confirm('Are you sure you want to DELETE ALL TASKS? This cannot be undone.')) return;
+        const dateStr = formatDateForUI(selectedDate);
+        if (!confirm(`Are you sure you want to DELETE ALL TASKS for ${dateStr}? This cannot be undone.`)) return;
+
         try {
-            await api.debug_deleteAllTasks();
+            // Convert to DB format YYYY-MM-DD
+            const offsetDate = new Date(selectedDate.getTime() - (selectedDate.getTimezoneOffset() * 60000));
+            const dbDate = offsetDate.toISOString().split('T')[0];
+
+            // Update: clearTasksForDate now returns IDs of deleted tasks
+            const deletedIds = await api.clearTasksForDate(dbDate);
             refresh();
+
+            toast.success(`All tasks for ${dateStr} deleted`, {
+                action: {
+                    label: 'UNDO',
+                    onClick: async () => {
+                        const loadingToast = toast.loading("Restoring tasks...");
+                        try {
+                            await api.restoreTasks(deletedIds);
+                            refresh();
+                            toast.dismiss(loadingToast);
+                            toast.success("Tasks restored!");
+                        } catch (err) {
+                            console.error("Restore failed", err);
+                            toast.dismiss(loadingToast);
+                            toast.error("Failed to restore tasks");
+                        }
+                    }
+                },
+                duration: 5000,
+            });
         } catch (err) {
             console.error(err);
+            toast.error("Failed to clear tasks");
         }
     };
 
