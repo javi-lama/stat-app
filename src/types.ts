@@ -14,12 +14,15 @@ export interface TaskStep {
 
 export interface PatientTask {
     id: string;
+    patient_id?: string; // Added for optimistic updates
     description: string;
     is_completed: boolean;
     steps?: TaskStep[]; // Updated to object array
     type: 'lab' | 'imaging' | 'admin' | 'procedure' | 'consult' | 'paperwork' | 'supervision';
     created_at: string;
     task_date?: string; // YYYY-MM-DD
+    isOptimistic?: boolean; // Flag for temporary tasks
+    tempId?: string; // Temporary ID for optimistic updates
 }
 
 export interface PatientCardProps {

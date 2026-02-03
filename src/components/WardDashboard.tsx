@@ -526,7 +526,7 @@ const WardDashboard: React.FC = () => {
             </div>
 
             {/* Patient Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-20 p-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6 pb-20 p-1">
                 {patients.map((patient: any) => {
                     const matchedTaskIds = getFilteredTaskIds(patient);
                     const isFilterActive = activeFilterCount > 0;

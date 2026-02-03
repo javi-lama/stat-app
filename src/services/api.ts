@@ -167,7 +167,7 @@ export const api = {
         category: 'lab' | 'imaging' | 'admin' | 'procedure' | 'consult' | 'paperwork' | 'supervision';
         type: 'clinical' | 'admin'; // workflow_type
         task_date: string; // YYYY-MM-DD
-    }): Promise<void> {
+    }): Promise<PatientTask> {
         let steps: { label: string; value: boolean }[] = [];
 
         // 2.2. Logic to generate steps (Strict Rule)
@@ -200,7 +200,7 @@ export const api = {
             dbDescription = `[Supervision] ${payload.description}`;
         }
 
-        const { error } = await supabase
+        const { data, error } = await supabase
             .from('tasks')
             .insert({
                 patient_id: payload.patient_id,
@@ -209,12 +209,25 @@ export const api = {
                 is_completed: false, // Initial state always false
                 steps: steps,
                 due_date: payload.task_date
-            });
+            })
+            .select()
+            .single();
 
         if (error) {
             console.error('Error creating task:', error);
             throw error;
         }
+
+        // Return PatientTask (clean description)
+        return {
+            id: data.id,
+            description: payload.description, // Return original, not tag-prefixed
+            is_completed: data.is_completed,
+            type: payload.category as PatientTask['type'], // Use original category
+            steps: data.steps,
+            created_at: data.created_at,
+            task_date: data.due_date || formatDateForDB(new Date(data.created_at))
+        };
     },
 
     /**

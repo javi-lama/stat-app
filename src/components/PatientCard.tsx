@@ -4,6 +4,7 @@ import { cn } from '../lib/utils';
 import { toast } from 'sonner';
 import { api } from '../services/api';
 import { calculateTaskProgress } from '../lib/progressUtils';
+import { useOptimisticMutations } from '../hooks/useOptimisticMutations';
 
 // Update Props Interface
 export interface PatientCardProps {
@@ -68,7 +69,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
 
     // Filter Logic for RENDERING ONLY
     const tasksToRender = visibleTaskIds
-        ? tasksState.filter(t => visibleTaskIds.includes(t.id))
+        ? tasksState.filter(t => visibleTaskIds.includes(t.id) || t.isOptimistic)
         : tasksState;
 
     // Diagnosis Editing State
@@ -105,6 +106,14 @@ const PatientCard: React.FC<PatientCardProps> = ({
             bedInputRef.current.focus();
         }
     }, [isEditingBed]);
+
+    // Optimistic Mutations Hook
+    const { toggleTaskOptimistic } = useOptimisticMutations(
+        patientId,
+        tasksState,
+        setTasksState,
+        onRefresh
+    );
 
     // Diagnosis Save Handler
     const handleSaveDiagnosis = async () => {
@@ -234,37 +243,9 @@ const PatientCard: React.FC<PatientCardProps> = ({
         }
     };
 
-    // 2. Toggle Function (Existing)
-    const toggleTaskStep = async (taskId: string, stepIndex: number) => {
-        const taskIndex = tasksState.findIndex(t => t.id === taskId);
-        if (taskIndex === -1) return;
-
-        const currentTask = tasksState[taskIndex];
-        const hasSteps = currentTask.steps && currentTask.steps.length > 0;
-
-        if (!hasSteps) return;
-
-        const previousTasksState = JSON.parse(JSON.stringify(tasksState));
-        const newTasks = [...tasksState];
-        const newTask = { ...currentTask };
-        const newSteps = newTask.steps!.map(s => ({ ...s }));
-
-        newSteps[stepIndex].value = !newSteps[stepIndex].value;
-        newTask.steps = newSteps;
-        newTask.is_completed = newSteps.every(s => s.value);
-
-        newTasks[taskIndex] = newTask;
-        setTasksState(newTasks);
-
-        try {
-            await api.updateTaskStatus(taskId, newSteps, newTask.is_completed);
-            toast.success('Task updated');
-        } catch (error) {
-            console.error('Sync error:', error);
-            setTasksState(previousTasksState);
-            toast.error('Connection failed. Change not saved');
-        }
-    };
+    // 2. Toggle Function (Using Optimistic Mutations Hook)
+    // Replaced with toggleTaskOptimistic from useOptimisticMutations hook
+    const toggleTaskStep = toggleTaskOptimistic;
 
     // Determine Status: Prop OR Logic
     const isReady = (props.status as string) === 'discharge_ready' || isAllCompleted;
@@ -392,11 +373,18 @@ const PatientCard: React.FC<PatientCardProps> = ({
                         const icon = getTaskIcon(task.type);
                         const isTaskCompleted = task.is_completed;
                         const steps = task.steps || [];
+                        const isOptimistic = task.isOptimistic;
 
                         return (
-                            <div key={task.id} className="flex items-center justify-between group/task py-2 gap-3">
+                            <div
+                                key={task.id}
+                                className={cn(
+                                    "flex items-center group/task py-2 gap-3 transition-all duration-300",
+                                    isOptimistic && "opacity-70 grayscale-[0.3] border-l-2 border-dashed border-gray-300 pl-2 -ml-2.5 bg-gray-50/50"
+                                )}
+                            >
                                 {/* Column 1: Text Content */}
-                                <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
+                                <div className="flex items-center gap-2 flex-1 min-w-0 pr-4">
                                     <span
                                         className={cn(
                                             'material-symbols-outlined text-lg shrink-0 mt-0.5',
@@ -420,7 +408,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
                                 </div>
 
                                 {/* Column 2: Checkboxes */}
-                                <div className={cn("flex items-center gap-3 flex-shrink-0 ml-2", isConfigMode && "opacity-50 pointer-events-none grayscale")}>
+                                <div className={cn("flex items-center gap-2 shrink-0", isConfigMode && "opacity-50 pointer-events-none grayscale")}>
                                     {steps.map((step, index) => (
                                         <div
                                             key={index}
@@ -443,7 +431,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
                                 </div>
 
                                 {/* Column 3: Actions (Static reservation, no overlap) */}
-                                <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover/task:opacity-100 transition-opacity duration-200 pl-2 bg-surface-light flex-shrink-0">
+                                <div className="flex items-center gap-1 shrink-0 opacity-100 lg:opacity-0 lg:group-hover/task:opacity-100 transition-opacity duration-200 pl-3 bg-surface-light">
                                     <button
                                         onClick={() => handleEditTask(task.id, task.description, task.type)}
                                         className="text-[10px] text-secondary hover:text-primary font-bold uppercase tracking-wide"
