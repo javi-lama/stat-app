@@ -68,7 +68,7 @@ const MainLayout: React.FC = () => {
 
                     {/* Premium Micro-Footer */}
                     <footer className="py-6 mt-8 text-center">
-                        <p className="text-[10px] text-slate-300 dark:text-slate-600 font-light tracking-wider">
+                        <p className="text-[10px] text-slate-400 font-light tracking-wider">
                             STAT. © 2026 | Engineered for High-Performance Medicine by Divini Technologies
                         </p>
                     </footer>
@@ -102,11 +102,11 @@ const MainLayout: React.FC = () => {
                         {/* Drawer Panel */}
                         <div className="relative w-full max-w-sm h-full bg-surface-light shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col">
                             {/* Drawer Header with Close Button */}
-                            <div className="p-4 border-b border-border-light flex justify-between items-center bg-gray-50 dark:bg-gray-800">
+                            <div className="p-4 border-b border-border-light flex justify-between items-center bg-gray-50">
                                 <h3 className="font-bold text-lg">Add New Task</h3>
                                 <button
                                     onClick={() => setIsMobileTaskOpen(false)}
-                                    className="size-8 flex items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                                    className="size-8 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-colors"
                                 >
                                     <span className="material-symbols-outlined text-xl">close</span>
                                 </button>

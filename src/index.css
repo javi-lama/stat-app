@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Force light color scheme - prevent browser dark mode injection */
+:root {
+  color-scheme: light only;
+}
+
 @theme {
   /* Fonts */
   --font-display: 'Manrope', sans-serif;
@@ -25,6 +30,9 @@
 }
 
 @layer base {
+  html {
+    color-scheme: light only;
+  }
   body {
     /* Using the new utility classes derived from variables */
     @apply bg-background-light text-text-main font-display antialiased;

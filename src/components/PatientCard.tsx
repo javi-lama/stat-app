@@ -256,7 +256,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
                 'rounded-xl shadow-sm border p-5 group transition-all duration-200 relative', // Added relative here explicitly
                 isReady
                     ? 'bg-success-bg border-success/30'
-                    : 'bg-surface-light border-border-light hover:border-primary/50',
+                    : 'bg-white border-border-light hover:border-primary/50',
                 isConfigMode && "animate-shake ring-2 ring-primary/20", // Config Mode: Shake & Highlight
                 className
             )}
@@ -313,7 +313,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
 
                 <div className="flex items-center gap-3">
                     {/* Progress Bar */}
-                    <div className="w-24 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
                         <div
                             className={`h-full ${progressStats.bgClass} transition-all duration-500`}
                             style={{ width: `${progressStats.percentage}%` }}
@@ -415,7 +415,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
                                             onClick={() => !isConfigMode && toggleTaskStep(task.id, index)}
                                             title={step.label}
                                             className={cn(
-                                                'w-4 h-4 rounded border-2 cursor-pointer flex items-center justify-center transition-colors',
+                                                'w-4 h-4 rounded border-2 cursor-pointer flex items-center justify-center transition-all hover:scale-110 active:scale-95',
                                                 step.value
                                                     ? 'border-primary bg-primary' // Checked: Blue Border + Blue BG
                                                     : 'border-gray-300 hover:border-primary bg-white' // Unchecked: Gray Border + White BG
@@ -431,16 +431,16 @@ const PatientCard: React.FC<PatientCardProps> = ({
                                 </div>
 
                                 {/* Column 3: Actions (Static reservation, no overlap) */}
-                                <div className="flex items-center gap-1 shrink-0 opacity-100 lg:opacity-0 lg:group-hover/task:opacity-100 transition-opacity duration-200 pl-3 bg-surface-light">
+                                <div className="flex items-center gap-1 shrink-0 opacity-100 lg:opacity-0 lg:group-hover/task:opacity-100 transition-opacity duration-200 pl-3 bg-white">
                                     <button
                                         onClick={() => handleEditTask(task.id, task.description, task.type)}
-                                        className="text-[10px] text-secondary hover:text-primary font-bold uppercase tracking-wide"
+                                        className="text-[10px] text-secondary hover:text-primary hover:bg-gray-100 rounded px-1.5 py-0.5 font-bold uppercase tracking-wide transition-colors"
                                     >
                                         Edit
                                     </button>
                                     <button
                                         onClick={() => handleDeleteTask(task.id, task.task_date || '')}
-                                        className="text-[10px] text-red-400 hover:text-red-500 font-bold uppercase tracking-wide"
+                                        className="text-[10px] text-red-400 hover:text-red-500 hover:bg-red-50 rounded px-1.5 py-0.5 font-bold uppercase tracking-wide transition-colors"
                                     >
                                         Delete
                                     </button>
@@ -450,7 +450,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
                     })}
 
                 {tasksState.length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-4 text-gray-300">
+                    <div className="flex flex-col items-center justify-center py-4 text-gray-400">
                         <span className="material-symbols-outlined text-3xl mb-1 opacity-50">task</span>
                         <span className="text-xs">No active tasks</span>
                     </div>

@@ -108,16 +108,16 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
 
     return (
         <div className="flex flex-col h-full bg-surface-light border-l border-border-light shadow-xl relative">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-800">
-                <h2 className="text-[#101719] dark:text-white text-xl font-bold leading-tight mb-1">Add New Task</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Quickly assign orders to beds.</p>
+            <div className="p-6 border-b border-gray-200">
+                <h2 className="text-[#101719] text-xl font-bold leading-tight mb-1">Add New Task</h2>
+                <p className="text-sm text-gray-500">Quickly assign orders to beds.</p>
             </div>
 
             {/* Context Warning Banner */}
             {!isToday && (
-                <div className="bg-amber-100 dark:bg-amber-900/30 px-6 py-2 border-b border-amber-200 dark:border-amber-800 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-amber-700 dark:text-amber-500 text-sm">calendar_month</span>
-                    <span className="text-xs font-bold text-amber-800 dark:text-amber-500">
+                <div className="bg-amber-100 px-6 py-2 border-b border-amber-200 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-amber-700 text-sm">calendar_month</span>
+                    <span className="text-xs font-bold text-amber-800">
                         Editing for: {formatDateForUI(selectedDate)}
                     </span>
                 </div>
@@ -127,11 +127,11 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                     {/* Patient Select */}
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">Patient / Bed</label>
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Patient / Bed</label>
                         <div className="relative">
                             <select
                                 {...register('patient_id')}
-                                className="w-full bg-gray-50 dark:bg-[#252525] border-gray-200 dark:border-gray-700 rounded-lg py-2.5 px-3 text-sm font-medium focus:ring-1 focus:ring-primary focus:border-primary outline-none cursor-pointer text-gray-900 dark:text-white appearance-none"
+                                className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3 text-sm font-medium focus:ring-1 focus:ring-primary focus:border-primary outline-none cursor-pointer text-gray-900 appearance-none"
                             >
                                 <option value="">Select a bed...</option>
                                 {patients.map(p => (
@@ -146,7 +146,7 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
 
                     {/* Category Radios */}
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">Category</label>
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Category</label>
                         <div className="flex flex-wrap gap-3">
                             {[
                                 { label: 'Lab', value: 'lab' },
@@ -163,7 +163,7 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
                                         value={opt.value}
                                         className="peer sr-only"
                                     />
-                                    <span className="px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs font-medium text-gray-700 dark:text-gray-300 peer-checked:bg-primary peer-checked:text-white peer-checked:border-primary transition-all">
+                                    <span className="px-3 py-1.5 rounded-full border border-gray-200 bg-white text-xs font-medium text-gray-700 peer-checked:bg-primary peer-checked:text-white peer-checked:border-primary transition-all">
                                         {opt.label}
                                     </span>
                                 </label>
@@ -174,9 +174,9 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
 
                     {/* Workflow Type */}
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">Workflow Type</label>
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Workflow Type</label>
                         <div className="grid grid-cols-2 gap-3">
-                            <label className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary/5 dark:has-[:checked]:bg-primary/20 transition-all">
+                            <label className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary/5 transition-all">
                                 <input
                                     type="radio"
                                     {...register('workflow_type')}
@@ -184,11 +184,11 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
                                     className="text-primary focus:ring-primary border-gray-300"
                                 />
                                 <div className="flex flex-col">
-                                    <span className="text-sm font-bold text-gray-900 dark:text-white">Clinical</span>
+                                    <span className="text-sm font-bold text-gray-900">Clinical</span>
                                     <span className="text-[10px] text-gray-500">3-step verification</span>
                                 </div>
                             </label>
-                            <label className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary/5 dark:has-[:checked]:bg-primary/20 transition-all">
+                            <label className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary/5 transition-all">
                                 <input
                                     type="radio"
                                     {...register('workflow_type')}
@@ -196,7 +196,7 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
                                     className="text-primary focus:ring-primary border-gray-300"
                                 />
                                 <div className="flex flex-col">
-                                    <span className="text-sm font-bold text-gray-900 dark:text-white">Admin</span>
+                                    <span className="text-sm font-bold text-gray-900">Admin</span>
                                     <span className="text-[10px] text-gray-500">Single check</span>
                                 </div>
                             </label>
@@ -205,10 +205,10 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
 
                     {/* Description */}
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">Description</label>
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Description</label>
                         <textarea
                             {...register('description')}
-                            className="w-full bg-gray-50 dark:bg-[#252525] border-gray-200 dark:border-gray-700 rounded-lg p-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none resize-none placeholder-gray-400 dark:placeholder-gray-600 dark:text-white transition-all"
+                            className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none resize-none placeholder-gray-400 text-gray-900 transition-all"
                             placeholder="e.g. Consult Cardiology re: persistent arrhythmia..."
                             rows={4}
                         ></textarea>
@@ -217,12 +217,12 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
 
                     {/* Actions / Confirmation Interstitial */}
                     {confirmationPending ? (
-                        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 animate-in fade-in slide-in-from-bottom-2">
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 animate-in fade-in slide-in-from-bottom-2">
                             <div className="flex items-start gap-2 mb-3">
-                                <span className="material-symbols-outlined text-amber-600 dark:text-amber-500 text-lg">warning</span>
+                                <span className="material-symbols-outlined text-amber-600 text-lg">warning</span>
                                 <div className="flex flex-col">
-                                    <span className="text-xs font-bold text-amber-800 dark:text-amber-500">Check the date!</span>
-                                    <p className="text-[10px] text-amber-700 dark:text-amber-400 leading-tight">
+                                    <span className="text-xs font-bold text-amber-800">Check the date!</span>
+                                    <p className="text-[10px] text-amber-700 leading-tight">
                                         You are creating this task for <strong className="font-bold">{formatDateForUI(selectedDate)}</strong>, not Today.
                                     </p>
                                 </div>
@@ -231,7 +231,7 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
                                 <button
                                     type="button"
                                     onClick={() => pendingData && executeCreateTask(pendingData, new Date())}
-                                    className="flex-1 bg-white dark:bg-gray-800 border border-amber-300 dark:border-amber-700 shadow-sm text-xs font-bold text-amber-800 dark:text-amber-500 py-2 rounded hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors"
+                                    className="flex-1 bg-white border border-amber-300 shadow-sm text-xs font-bold text-amber-800 py-2 rounded hover:bg-amber-50 transition-colors"
                                 >
                                     Corregir a Hoy
                                 </button>
@@ -256,7 +256,7 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
                             <button
                                 type="button"
                                 onClick={() => reset()}
-                                className="text-sm font-bold text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white px-4 py-2 transition-colors"
+                                className="text-sm font-bold text-gray-500 hover:text-gray-900 px-4 py-2 transition-colors"
                             >
                                 Cancel
                             </button>

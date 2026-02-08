@@ -38,25 +38,25 @@ const Login: React.FC = () => {
     };
 
     return (
-        <div className="bg-[#F8FAFB] dark:bg-[#0F172A] min-h-screen flex flex-col items-center justify-center p-4 transition-colors duration-200 font-sans">
+        <div className="bg-[#F8FAFB] min-h-screen flex flex-col items-center justify-center p-4 transition-colors duration-200 font-sans">
             <main className="w-full max-w-[440px] z-10 relative">
                 <div className="flex flex-col items-center justify-center mb-10 text-center">
                     <img src="/logo.svg" alt="STAT. Logo" className="w-24 h-24 mb-4 drop-shadow-lg" />
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">STAT.</h1>
-                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-widest">Hospital Workflow Manager</p>
+                        <h1 className="text-2xl font-bold text-slate-900 leading-tight">STAT.</h1>
+                        <p className="text-xs font-medium text-slate-500 uppercase tracking-widest">Hospital Workflow Manager</p>
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-[#1E293B] rounded-2xl shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-800 p-8 md:p-10">
+                <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 p-8 md:p-10">
                     <div className="mb-8">
-                        <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Sign In</h2>
-                        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Access your ward and patient tasks securely.</p>
+                        <h2 className="text-xl font-semibold text-slate-900">Sign In</h2>
+                        <p className="text-slate-500 text-sm mt-1">Access your ward and patient tasks securely.</p>
                     </div>
 
                     <form onSubmit={handleLogin} className="space-y-6">
                         <div className="space-y-2">
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="medical-id">Medical ID or Email</label>
+                            <label className="block text-sm font-medium text-slate-700" htmlFor="medical-id">Medical ID or Email</label>
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#30889E] transition-colors">
                                     {/* Fix: Class name */}
@@ -69,14 +69,14 @@ const Login: React.FC = () => {
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     placeholder="e.g. DR123456 or name@hospital.org"
-                                    className="block w-full pl-10 pr-3 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#30889E]/20 focus:border-[#30889E] transition-all text-sm"
+                                    className="block w-full pl-10 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#30889E]/20 focus:border-[#30889E] transition-all text-sm"
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="password">Password</label>
+                                <label className="block text-sm font-medium text-slate-700" htmlFor="password">Password</label>
                                 <a href="#" className="text-xs font-semibold text-[#30889E] hover:underline">Forgot password?</a>
                             </div>
                             <div className="relative group">
@@ -91,12 +91,12 @@ const Login: React.FC = () => {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     placeholder="••••••••"
-                                    className="block w-full pl-10 pr-10 py-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#30889E]/20 focus:border-[#30889E] transition-all text-sm"
+                                    className="block w-full pl-10 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#30889E]/20 focus:border-[#30889E] transition-all text-sm"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none"
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none"
                                 >
                                     {/* Fix: Class name */}
                                     <span className="material-symbols-outlined text-[20px]">{showPassword ? 'visibility_off' : 'visibility'}</span>
@@ -108,9 +108,9 @@ const Login: React.FC = () => {
                             <input
                                 id="remember-me"
                                 type="checkbox"
-                                className="h-4 w-4 text-[#30889E] focus:ring-[#30889E] border-slate-300 dark:border-slate-700 rounded transition-colors bg-white dark:bg-slate-900 cursor-pointer"
+                                className="h-4 w-4 text-[#30889E] focus:ring-[#30889E] border-slate-300 rounded transition-colors bg-white cursor-pointer"
                             />
-                            <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
+                            <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-600 cursor-pointer">
                                 Stay signed in for today's shift
                             </label>
                         </div>
@@ -134,17 +134,17 @@ const Login: React.FC = () => {
                 </div>
 
                 <footer className="mt-10 text-center space-y-4">
-                    <div className="flex items-center justify-center gap-4 text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                    <div className="flex items-center justify-center gap-4 text-xs font-medium text-slate-400 uppercase tracking-wider">
                         <a href="#" className="hover:text-[#30889E] transition-colors">Security & Privacy</a>
-                        <span className="w-1 h-1 bg-slate-300 dark:bg-slate-700 rounded-full"></span>
+                        <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
                         <a href="#" className="hover:text-[#30889E] transition-colors">Support</a>
-                        <span className="w-1 h-1 bg-slate-300 dark:bg-slate-700 rounded-full"></span>
+                        <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
                         <a href="#" className="hover:text-[#30889E] transition-colors">Terms</a>
                     </div>
-                    <div className="flex items-center justify-center gap-2 px-6 py-2 bg-slate-100/50 dark:bg-slate-800/50 rounded-full w-fit mx-auto">
+                    <div className="flex items-center justify-center gap-2 px-6 py-2 bg-slate-100/50 rounded-full w-fit mx-auto">
                         {/* Fix: Class name */}
                         <span className="material-symbols-outlined text-emerald-500 text-sm">verified_user</span>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400">HIPAA Compliant & End-to-End Encrypted Session</p>
+                        <p className="text-[11px] text-slate-500">HIPAA Compliant & End-to-End Encrypted Session</p>
                     </div>
                 </footer>
             </main>

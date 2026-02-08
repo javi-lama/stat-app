@@ -222,7 +222,7 @@ const WardDashboard: React.FC = () => {
         <div>
             {/* Top Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                <div className="bg-surface-light dark:bg-surface-dark p-4 rounded-xl border border-border-light dark:border-border-dark shadow-sm flex items-center justify-between">
+                <div className="bg-white p-4 rounded-xl border border-border-light border-l-4 border-l-primary shadow-sm flex items-center justify-between min-h-[100px]">
                     <div>
                         <p className="text-xs text-secondary font-semibold uppercase">Daily Progress</p>
                         <div className="flex items-baseline gap-1 mt-1">
@@ -234,7 +234,7 @@ const WardDashboard: React.FC = () => {
                     <div className="relative size-10 flex items-center justify-center">
                         <svg className="size-10 transform -rotate-90">
                             <circle
-                                className="text-gray-200 dark:text-gray-700"
+                                className="text-gray-200"
                                 cx="20"
                                 cy="20"
                                 fill="transparent"
@@ -259,7 +259,7 @@ const WardDashboard: React.FC = () => {
                     </div>
                 </div>
                 {/* Pending Labs - Example Static or Calculation */}
-                <div className="bg-surface-light dark:bg-surface-dark p-4 rounded-xl border border-border-light dark:border-border-dark shadow-sm flex items-center justify-between">
+                <div className="bg-white p-4 rounded-xl border border-border-light border-l-4 border-l-primary shadow-sm flex items-center justify-between min-h-[100px]">
                     <div>
                         <p className="text-xs text-secondary font-semibold uppercase">Pending Labs</p>
                         <p className="text-2xl font-bold text-primary">
@@ -272,7 +272,7 @@ const WardDashboard: React.FC = () => {
                     </div>
                 </div>
                 {/* Pending Consults - Example Static or Calculation */}
-                <div className="bg-surface-light dark:bg-surface-dark p-4 rounded-xl border border-border-light dark:border-border-dark shadow-sm flex items-center justify-between">
+                <div className="bg-white p-4 rounded-xl border border-border-light border-l-4 border-l-success shadow-sm flex items-center justify-between min-h-[100px]">
                     <div>
                         <p className="text-xs text-secondary font-semibold uppercase">Pending Consults</p>
                         <p className="text-2xl font-bold text-success">
@@ -285,7 +285,7 @@ const WardDashboard: React.FC = () => {
                     </div>
                 </div>
                 {/* Pending Images - Example Static or Calculation */}
-                <div className="bg-surface-light dark:bg-surface-dark p-4 rounded-xl border border-border-light dark:border-border-dark shadow-sm flex items-center justify-between">
+                <div className="bg-white p-4 rounded-xl border border-border-light border-l-4 border-l-purple-500 shadow-sm flex items-center justify-between min-h-[100px]">
                     <div>
                         <p className="text-xs text-secondary font-semibold uppercase">Pending Images</p>
                         <p className="text-2xl font-bold text-purple-600">
@@ -300,27 +300,20 @@ const WardDashboard: React.FC = () => {
             </div>
 
             {/* Controls Bar: Filters & Admin */}
-            <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
+            <div className="flex flex-wrap justify-between items-start mb-6 gap-2 sm:gap-4">
 
                 {/* Left Side: Filters + Handoff + Date Nav */}
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
 
                     {/* DATE NAVIGATION */}
                     <div className={cn(
-                        "flex items-center gap-1 bg-surface-light dark:bg-surface-dark rounded-lg shadow-sm border py-1 px-2 transition-colors",
-                        // Match height/border style with Filter button roughly
-                        // Filter is py-2 px-4.
-                        // We want the container to look consistent.
-                        // Let's use the same border color as Filter: border-primary
-                        // But maybe we want it less aggressive. The user loves the Filter button.
-                        // Let's use transparent border usually, or border-primary if we want to match EXACTLY.
-                        // Actually, let's make it look like a button group.
-                        !isToday ? "border-amber-400 bg-amber-50 dark:bg-amber-900/10" : "border-primary"
+                        "flex items-center gap-1 bg-white rounded-lg shadow-sm border py-1 px-2 transition-colors min-h-11",
+                        !isToday ? "border-amber-400 bg-amber-50" : "border-primary"
                     )}>
                         <button
                             onClick={handlePrevDay}
                             className={cn(
-                                "p-1 rounded-md transition-colors",
+                                "p-1 rounded-md transition-colors active:scale-95",
                                 !isToday ? "hover:bg-amber-200/50 text-amber-700" : "hover:bg-primary hover:text-white text-primary"
                             )}
                         >
@@ -328,14 +321,14 @@ const WardDashboard: React.FC = () => {
                         </button>
                         <span className={cn(
                             "mx-2 text-sm font-bold min-w-[100px] text-center select-none",
-                            !isToday ? "text-amber-700 dark:text-amber-500" : "text-primary"
+                            !isToday ? "text-amber-700" : "text-primary"
                         )}>
                             {formatDateForUI(selectedDate)}
                         </span>
                         <button
                             onClick={handleNextDay}
                             className={cn(
-                                "p-1 rounded-md transition-colors",
+                                "p-1 rounded-md transition-colors active:scale-95",
                                 !isToday ? "hover:bg-amber-200/50 text-amber-700" : "hover:bg-primary hover:text-white text-primary"
                             )}
                         >
@@ -343,7 +336,7 @@ const WardDashboard: React.FC = () => {
                         </button>
                     </div>
 
-                    <div className="w-px h-8 bg-border-light mx-1"></div>
+                    <div className="hidden sm:block w-px h-8 bg-border-light mx-1"></div>
 
                     {/* Import Pending Button (Only Today) */}
                     {isToday && (
@@ -365,40 +358,38 @@ const WardDashboard: React.FC = () => {
                                     toast.error('Failed to import tasks.', { id: toastId });
                                 }
                             }}
-                            className="relative group border border-primary text-sm font-bold py-2 px-4 rounded-lg shadow-sm flex items-center gap-2 transition-all bg-surface-light dark:bg-surface-dark text-primary hover:bg-primary hover:text-white"
+                            className="relative group border border-primary text-sm font-bold min-h-11 py-2 px-3 sm:px-4 rounded-lg shadow-sm flex items-center gap-2 transition-all active:scale-[0.98] bg-white text-primary hover:bg-primary hover:text-white focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                             title="Import pending tasks from yesterday"
+                            aria-label="Import pending tasks from yesterday"
                         >
                             <span className="material-symbols-outlined text-[18px]">autorenew</span>
                             <span className="hidden sm:inline">Import Pending</span>
                         </button>
                     )}
 
-                    <div className="w-px h-8 bg-border-light mx-1"></div>
+                    <div className="hidden sm:block w-px h-8 bg-border-light mx-1"></div>
 
                     {/* Smart Filters */}
                     <div className="relative">
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={() => setShowFilterMenu(!showFilterMenu)}
-                                className={`
-                                    relative group border text-sm font-bold py-2 px-4 rounded-lg shadow-sm flex items-center gap-2 transition-all
-                                    ${activeFilterCount > 0
-                                        ? 'bg-primary/10 border-primary text-primary'
-                                        : 'bg-surface-light dark:bg-surface-dark border-primary text-primary hover:bg-primary hover:text-white'
-                                    }
-                                `}
-                            >
-                                <span className="material-symbols-outlined text-[18px]">filter_list</span>
-                                Filter
-                            </button>
-
+                        <button
+                            onClick={() => setShowFilterMenu(!showFilterMenu)}
+                            className={`
+                                relative group border text-sm font-bold min-h-11 py-2 px-3 sm:px-4 rounded-lg shadow-sm flex items-center gap-2 transition-all active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2
+                                ${activeFilterCount > 0
+                                    ? 'bg-primary/10 border-primary text-primary'
+                                    : 'bg-white border-primary text-primary hover:bg-primary hover:text-white'
+                                }
+                            `}
+                            aria-label="Filter tasks"
+                        >
+                            <span className="material-symbols-outlined text-[18px]">filter_list</span>
+                            <span className="hidden sm:inline">Filter</span>
                             {activeFilterCount > 0 && (
-                                <div className="bg-primary/10 text-primary border border-primary/20 text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-2 shadow-sm animate-in fade-in zoom-in duration-200">
-                                    <span className="material-symbols-outlined text-[14px]">filter_alt</span>
-                                    {activeFilterCount} Filter active
-                                </div>
+                                <span className="absolute -top-1.5 -right-1.5 size-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm">
+                                    {activeFilterCount}
+                                </span>
                             )}
-                        </div>
+                        </button>
 
                         {/* Filter Menu Dropdown */}
                         {showFilterMenu && (
@@ -409,11 +400,11 @@ const WardDashboard: React.FC = () => {
                                     onClick={() => setShowFilterMenu(false)}
                                 ></div>
 
-                                <div className="absolute left-0 mt-2 w-56 bg-surface-light dark:bg-surface-dark rounded-xl shadow-lg border border-border-light dark:border-border-dark z-50 p-2 flex flex-col gap-1">
-                                    <div className="px-3 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                <div className="fixed bottom-0 inset-x-0 rounded-t-2xl max-h-[60vh] overflow-y-auto sm:absolute sm:bottom-auto sm:inset-auto sm:left-0 sm:mt-2 sm:w-56 sm:rounded-xl sm:max-h-none bg-white shadow-lg border border-border-light z-50 p-3 sm:p-2 flex flex-col gap-1" role="menu">
+                                    <div className="px-3 py-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
                                         Focus Mode
                                     </div>
-                                    <label className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors">
+                                    <label className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors" role="menuitem">
                                         <input
                                             type="checkbox"
                                             checked={filters.unfinished}
@@ -425,7 +416,7 @@ const WardDashboard: React.FC = () => {
 
                                     <div className="h-px bg-border-light my-1 mx-2"></div>
 
-                                    <label className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors">
+                                    <label className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors" role="menuitem">
                                         <input
                                             type="checkbox"
                                             checked={filters.labs}
@@ -434,7 +425,7 @@ const WardDashboard: React.FC = () => {
                                         />
                                         <span className="text-sm font-medium text-text-main">Labs</span>
                                     </label>
-                                    <label className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors">
+                                    <label className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors" role="menuitem">
                                         <input
                                             type="checkbox"
                                             checked={filters.imaging}
@@ -443,7 +434,7 @@ const WardDashboard: React.FC = () => {
                                         />
                                         <span className="text-sm font-medium text-text-main">Images</span>
                                     </label>
-                                    <label className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors">
+                                    <label className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors" role="menuitem">
                                         <input
                                             type="checkbox"
                                             checked={filters.consults}
@@ -461,10 +452,11 @@ const WardDashboard: React.FC = () => {
                     <div className="relative">
                         <button
                             onClick={() => setShowHandoffMenu(!showHandoffMenu)}
-                            className="relative group border border-primary text-primary hover:bg-primary hover:text-white text-sm font-bold py-2 px-4 rounded-lg shadow-sm flex items-center gap-2 transition-all bg-surface-light dark:bg-surface-dark"
+                            className="relative group border border-primary text-primary hover:bg-primary hover:text-white text-sm font-bold min-h-11 py-2 px-3 sm:px-4 rounded-lg shadow-sm flex items-center gap-2 transition-all active:scale-[0.98] bg-white focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                            aria-label="Generate hand-off report"
                         >
                             <span className="material-symbols-outlined text-[18px]">assignment</span>
-                            Hand-off
+                            <span className="hidden sm:inline">Hand-off</span>
                         </button>
 
                         {showHandoffMenu && (
@@ -473,20 +465,22 @@ const WardDashboard: React.FC = () => {
                                     className="fixed inset-0 z-40"
                                     onClick={() => setShowHandoffMenu(false)}
                                 ></div>
-                                <div className="absolute left-0 mt-2 w-56 bg-surface-light dark:bg-surface-dark rounded-xl shadow-lg border border-border-light dark:border-border-dark z-50 p-2 flex flex-col gap-1">
-                                    <div className="px-3 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                <div className="fixed bottom-0 inset-x-0 rounded-t-2xl max-h-[60vh] overflow-y-auto sm:absolute sm:bottom-auto sm:inset-auto sm:left-0 sm:mt-2 sm:w-56 sm:rounded-xl sm:max-h-none bg-white shadow-lg border border-border-light z-50 p-3 sm:p-2 flex flex-col gap-1" role="menu">
+                                    <div className="px-3 py-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
                                         Generate Report
                                     </div>
                                     <button
                                         onClick={() => handleHandoff('all')}
-                                        className="w-full text-left flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors text-text-main"
+                                        className="w-full text-left flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors text-text-main"
+                                        role="menuitem"
                                     >
                                         <span className="material-symbols-outlined text-lg">description</span>
                                         <span className="text-sm font-medium">Report All Tasks</span>
                                     </button>
                                     <button
                                         onClick={() => handleHandoff('missing')}
-                                        className="w-full text-left flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors text-text-main"
+                                        className="w-full text-left flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors text-text-main"
+                                        role="menuitem"
                                     >
                                         <span className="material-symbols-outlined text-lg text-orange-500">warning</span>
                                         <span className="text-sm font-medium">Pending Only</span>
@@ -500,17 +494,18 @@ const WardDashboard: React.FC = () => {
                     <button
                         onClick={() => setIsConfigMode(!isConfigMode)}
                         className={`
-                            relative group border text-sm font-bold py-2 px-4 rounded-lg shadow-sm flex items-center gap-2 transition-all
+                            relative group border text-sm font-bold min-h-11 py-2 px-3 sm:px-4 rounded-lg shadow-sm flex items-center gap-2 transition-all active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2
                             ${isConfigMode
                                 ? 'bg-primary border-primary text-white hover:bg-primary/90'
-                                : 'bg-surface-light dark:bg-surface-dark border-primary text-primary hover:bg-primary hover:text-white'
+                                : 'bg-white border-primary text-primary hover:bg-primary hover:text-white'
                             }
                         `}
+                        aria-label="Edit bed configuration"
                     >
                         <span className="material-symbols-outlined text-[18px]">
                             {isConfigMode ? 'check' : 'tune'}
                         </span>
-                        {isConfigMode ? 'Done' : 'Bed edit'}
+                        <span className="hidden sm:inline">{isConfigMode ? 'Done' : 'Bed edit'}</span>
                     </button>
                 </div>
 
@@ -576,7 +571,7 @@ const WardDashboard: React.FC = () => {
                 {isConfigMode && (
                     <div
                         onClick={handleAddBed}
-                        className="bg-surface-light/50 dark:bg-surface-dark/50 rounded-xl shadow-sm border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 p-5 flex flex-col items-center justify-center min-h-[200px] cursor-pointer group transition-all"
+                        className="bg-white/50 rounded-xl shadow-sm border-2 border-dashed border-primary/30 hover:border-primary hover:bg-primary/5 p-5 flex flex-col items-center justify-center min-h-[200px] cursor-pointer group transition-all"
                     >
                         <div className="size-16 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                             <span className="material-symbols-outlined text-4xl text-primary">add</span>
