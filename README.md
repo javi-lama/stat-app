@@ -37,7 +37,7 @@ STAT. centraliza la sala en una interfaz colaborativa de latencia cero. Está co
 #### 📱 Experiencia Clínica
 * **Progressive Web App (PWA):** Instalable en iOS y Android con renderizado *standalone* y soporte *Maskable Icon* para una experiencia nativa.
 * **UI Liquida:** Grilla responsiva conservadora que evita la colisión visual de datos en pantallas clínicas densas.
-* **Hand-off Inteligente:** Generación automatizada de reportes de guardia compactos, listos para portapapeles y conformes a estándares de comunicación segura.
+* **Hand-off Inteligente:** Generación automatizada de reportes de guardia compactos, listos para pegar y conformes a estándares de comunicación segura.
 
 ---
 
