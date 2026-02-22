@@ -25,13 +25,13 @@ const Login: React.FC = () => {
             if (error) {
                 toast.error(error.message);
             } else {
-                toast.success('Welcome back!');
+                toast.success('¡Bienvenido!');
                 // Fix: Immediate redirection
                 navigate('/', { replace: true });
             }
         } catch (err) {
             console.error(err);
-            toast.error('An unexpected error occurred');
+            toast.error('Ha ocurrido un error inesperado');
         } finally {
             setLoading(false);
         }
@@ -44,19 +44,19 @@ const Login: React.FC = () => {
                     <img src="/logo.svg" alt="STAT. Logo" className="w-24 h-24 mb-4 drop-shadow-lg" />
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900 leading-tight">STAT.</h1>
-                        <p className="text-xs font-medium text-slate-500 uppercase tracking-widest">Hospital Workflow Manager</p>
+                        <p className="text-xs font-medium text-slate-500 uppercase tracking-widest">Gestor de Flujo de Trabajo Hospitalario</p>
                     </div>
                 </div>
 
                 <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 p-8 md:p-10">
                     <div className="mb-8">
-                        <h2 className="text-xl font-semibold text-slate-900">Sign In</h2>
-                        <p className="text-slate-500 text-sm mt-1">Access your ward and patient tasks securely.</p>
+                        <h2 className="text-xl font-semibold text-slate-900">Iniciar Sesión</h2>
+                        <p className="text-slate-500 text-sm mt-1">Accede a las tareas de tu sala y pacientes de forma segura.</p>
                     </div>
 
                     <form onSubmit={handleLogin} className="space-y-6">
                         <div className="space-y-2">
-                            <label className="block text-sm font-medium text-slate-700" htmlFor="medical-id">Medical ID or Email</label>
+                            <label className="block text-sm font-medium text-slate-700" htmlFor="medical-id">ID Médico o Correo</label>
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#30889E] transition-colors">
                                     {/* Fix: Class name */}
@@ -68,7 +68,7 @@ const Login: React.FC = () => {
                                     required
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="e.g. DR123456 or name@hospital.org"
+                                    placeholder="Ej. DR123456 o nombre@hospital.org"
                                     className="block w-full pl-10 pr-3 py-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#30889E]/20 focus:border-[#30889E] transition-all text-sm"
                                 />
                             </div>
@@ -76,8 +76,8 @@ const Login: React.FC = () => {
 
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                                <label className="block text-sm font-medium text-slate-700" htmlFor="password">Password</label>
-                                <a href="#" className="text-xs font-semibold text-[#30889E] hover:underline">Forgot password?</a>
+                                <label className="block text-sm font-medium text-slate-700" htmlFor="password">Contraseña</label>
+                                <a href="#" className="text-xs font-semibold text-[#30889E] hover:underline">¿Olvidaste tu contraseña?</a>
                             </div>
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#30889E] transition-colors">
@@ -111,7 +111,7 @@ const Login: React.FC = () => {
                                 className="h-4 w-4 text-[#30889E] focus:ring-[#30889E] border-slate-300 rounded transition-colors bg-white cursor-pointer"
                             />
                             <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-600 cursor-pointer">
-                                Stay signed in for today's shift
+                                Mantener sesión iniciada para el turno de hoy
                             </label>
                         </div>
 
@@ -121,10 +121,10 @@ const Login: React.FC = () => {
                             className="w-full flex items-center justify-center gap-2 py-3.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-[#30889E] hover:bg-[#287488] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#30889E] transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
                         >
                             {loading ? (
-                                <span className="animate-pulse">Signing in...</span>
+                                <span className="animate-pulse">Iniciando sesión...</span>
                             ) : (
                                 <>
-                                    Secure Sign In
+                                    Iniciar Sesión Seguro
                                     {/* Fix: Class name */}
                                     <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
                                 </>
@@ -135,16 +135,16 @@ const Login: React.FC = () => {
 
                 <footer className="mt-10 text-center space-y-4">
                     <div className="flex items-center justify-center gap-4 text-xs font-medium text-slate-400 uppercase tracking-wider">
-                        <a href="#" className="hover:text-[#30889E] transition-colors">Security & Privacy</a>
+                        <a href="#" className="hover:text-[#30889E] transition-colors">Seguridad y Privacidad</a>
                         <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
-                        <a href="#" className="hover:text-[#30889E] transition-colors">Support</a>
+                        <a href="#" className="hover:text-[#30889E] transition-colors">Soporte</a>
                         <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
-                        <a href="#" className="hover:text-[#30889E] transition-colors">Terms</a>
+                        <a href="#" className="hover:text-[#30889E] transition-colors">Términos</a>
                     </div>
                     <div className="flex items-center justify-center gap-2 px-6 py-2 bg-slate-100/50 rounded-full w-fit mx-auto">
                         {/* Fix: Class name */}
                         <span className="material-symbols-outlined text-emerald-500 text-sm">verified_user</span>
-                        <p className="text-[11px] text-slate-500">HIPAA Compliant & End-to-End Encrypted Session</p>
+                        <p className="text-[11px] text-slate-500">Cumple con HIPAA y Sesión Encriptada de Extremo a Extremo</p>
                     </div>
                 </footer>
             </main>

@@ -7,7 +7,7 @@ import { api } from '../services/api';
 
 // Zod Schema
 const newTaskSchema = z.object({
-    patient_id: z.string().min(1, "Please select a patient"),
+    patient_id: z.string().min(1, "Por favor selecciona un paciente"),
     category: z.enum(['lab', 'imaging', 'admin', 'procedure', 'consult', 'paperwork', 'supervision']), // consult/paperwork/supervision mapped?
     // User UI has: Lab, Image, Consult, Paperwork, Procedure, Supervision
     // DB has: lab, imaging, admin, procedure.
@@ -28,7 +28,7 @@ const newTaskSchema = z.object({
     // Form will use DB values for values, but UI labels can differ.
 
     workflow_type: z.enum(['clinical', 'admin']),
-    description: z.string().min(3, "Description must be at least 3 characters"),
+    description: z.string().min(3, "La descripción debe tener al menos 3 caracteres"),
 });
 
 type NewTaskFormValues = z.infer<typeof newTaskSchema>;
@@ -78,7 +78,7 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
                 type: data.workflow_type,
                 task_date: formatDateForDB(targetDate)
             });
-            toast.success('Task created successfully');
+            toast.success('Tarea creada exitosamente');
             reset({
                 category: 'lab',
                 workflow_type: 'clinical',
@@ -90,7 +90,7 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
             onTaskCreated();
         } catch (error) {
             console.error(error);
-            toast.error('Failed to create task');
+            toast.error('Error al crear la tarea');
         } finally {
             setIsSubmitting(false);
         }
@@ -109,8 +109,8 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
     return (
         <div className="flex flex-col h-full bg-surface-light border-l border-border-light shadow-xl relative">
             <div className="p-6 border-b border-gray-200">
-                <h2 className="text-[#101719] text-xl font-bold leading-tight mb-1">Add New Task</h2>
-                <p className="text-sm text-gray-500">Quickly assign orders to beds.</p>
+                <h2 className="text-[#101719] text-xl font-bold leading-tight mb-1">Añadir Tarea</h2>
+                <p className="text-sm text-gray-500">Asignar tareas rápidamente.</p>
             </div>
 
             {/* Context Warning Banner */}
@@ -118,7 +118,7 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
                 <div className="bg-amber-100 px-6 py-2 border-b border-amber-200 flex items-center gap-2">
                     <span className="material-symbols-outlined text-amber-700 text-sm">calendar_month</span>
                     <span className="text-xs font-bold text-amber-800">
-                        Editing for: {formatDateForUI(selectedDate)}
+                        Editando para: {formatDateForUI(selectedDate)}
                     </span>
                 </div>
             )}
@@ -127,13 +127,13 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                     {/* Patient Select */}
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Patient / Bed</label>
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Paciente / Cama</label>
                         <div className="relative">
                             <select
                                 {...register('patient_id')}
                                 className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3 text-sm font-medium focus:ring-1 focus:ring-primary focus:border-primary outline-none cursor-pointer text-gray-900 appearance-none"
                             >
-                                <option value="">Select a bed...</option>
+                                <option value="">Seleccionar cama...</option>
                                 {patients.map(p => (
                                     <option key={p.id} value={p.id}>
                                         {p.bedNumber} – {p.diagnosis}
@@ -146,15 +146,15 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
 
                     {/* Category Radios */}
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Category</label>
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Categoría</label>
                         <div className="flex flex-wrap gap-3">
                             {[
                                 { label: 'Lab', value: 'lab' },
-                                { label: 'Image', value: 'imaging' },
-                                { label: 'Consult', value: 'consult' },
-                                { label: 'Paperwork', value: 'paperwork' },
-                                { label: 'Procedure', value: 'procedure' },
-                                { label: 'Supervision', value: 'supervision' }
+                                { label: 'Imagen', value: 'imaging' },
+                                { label: 'Consulta', value: 'consult' },
+                                { label: 'Papeleo', value: 'paperwork' },
+                                { label: 'Procedimiento', value: 'procedure' },
+                                { label: 'Supervisión', value: 'supervision' }
                             ].map((opt, idx) => (
                                 <label key={`${opt.value}-${idx}`} className="cursor-pointer">
                                     <input
@@ -174,7 +174,7 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
 
                     {/* Workflow Type */}
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Workflow Type</label>
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Tipo de Tarea</label>
                         <div className="grid grid-cols-2 gap-3">
                             <label className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary/5 transition-all">
                                 <input
@@ -184,8 +184,7 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
                                     className="text-primary focus:ring-primary border-gray-300"
                                 />
                                 <div className="flex flex-col">
-                                    <span className="text-sm font-bold text-gray-900">Clinical</span>
-                                    <span className="text-[10px] text-gray-500">3-step verification</span>
+                                    <span className="text-sm font-bold text-gray-900">3 Checks</span>
                                 </div>
                             </label>
                             <label className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary/5 transition-all">
@@ -196,8 +195,7 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
                                     className="text-primary focus:ring-primary border-gray-300"
                                 />
                                 <div className="flex flex-col">
-                                    <span className="text-sm font-bold text-gray-900">Admin</span>
-                                    <span className="text-[10px] text-gray-500">Single check</span>
+                                    <span className="text-sm font-bold text-gray-900">1 Check</span>
                                 </div>
                             </label>
                         </div>
@@ -205,11 +203,11 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
 
                     {/* Description */}
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Description</label>
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Descripción</label>
                         <textarea
                             {...register('description')}
                             className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none resize-none placeholder-gray-400 text-gray-900 transition-all"
-                            placeholder="e.g. Consult Cardiology re: persistent arrhythmia..."
+                            placeholder="Ej: IC a Cardiología por riesgo quirúrgico..."
                             rows={4}
                         ></textarea>
                         {errors.description && <p className="text-red-500 text-xs">{errors.description.message}</p>}
@@ -221,9 +219,9 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
                             <div className="flex items-start gap-2 mb-3">
                                 <span className="material-symbols-outlined text-amber-600 text-lg">warning</span>
                                 <div className="flex flex-col">
-                                    <span className="text-xs font-bold text-amber-800">Check the date!</span>
+                                    <span className="text-xs font-bold text-amber-800">¡Revisa la fecha!</span>
                                     <p className="text-[10px] text-amber-700 leading-tight">
-                                        You are creating this task for <strong className="font-bold">{formatDateForUI(selectedDate)}</strong>, not Today.
+                                        Estás creando esta tarea para <strong className="font-bold">{formatDateForUI(selectedDate)}</strong>, no para Hoy.
                                     </p>
                                 </div>
                             </div>
@@ -248,7 +246,7 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
                                 onClick={() => setConfirmationPending(false)}
                                 className="w-full text-center text-[10px] text-gray-400 hover:text-gray-600 mt-2 underline"
                             >
-                                Cancel
+                                Cancelar
                             </button>
                         </div>
                     ) : (
@@ -258,7 +256,7 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
                                 onClick={() => reset()}
                                 className="text-sm font-bold text-gray-500 hover:text-gray-900 px-4 py-2 transition-colors"
                             >
-                                Cancel
+                                Cancelar
                             </button>
                             <button
                                 type="submit"
@@ -266,7 +264,7 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
                                 className="bg-primary hover:bg-primary-hover disabled:opacity-50 text-white text-sm font-bold px-6 py-2.5 rounded-lg shadow-sm shadow-primary/30 transition-all flex items-center gap-2"
                             >
                                 {isSubmitting ? (
-                                    <span>Saving...</span>
+                                    <span>Guardando...</span>
                                 ) : (
                                     <>
                                         <span>Aceptar</span>

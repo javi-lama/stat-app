@@ -40,7 +40,7 @@ const MainLayout: React.FC = () => {
                     <img src="/logo.svg" alt="Logo" className="w-11 h-11" />
                     <div className="flex flex-col justify-center">
                         <h2 className="text-xl font-bold leading-tight tracking-tight">STAT.</h2>
-                        <p className="text-xs text-secondary font-medium uppercase tracking-wider">Medicina A2 • Internal Medicine</p>
+                        <p className="text-xs text-secondary font-medium uppercase tracking-wider">Medicina A2 • Medicina Interna</p>
                     </div>
                 </div>
 
@@ -56,7 +56,7 @@ const MainLayout: React.FC = () => {
                         onClick={async () => await api.supabase.auth.signOut()}
                         className="text-xs font-medium text-red-500 hover:text-red-600 transition-colors"
                     >
-                        Sign Out
+                        Cerrar Sesión
                     </button>
                 </div>
             </header>
@@ -85,7 +85,7 @@ const MainLayout: React.FC = () => {
                 <button
                     onClick={() => setIsMobileTaskOpen(true)}
                     className="xl:hidden fixed bottom-6 right-6 size-14 bg-primary text-white rounded-full shadow-lg shadow-primary/40 flex items-center justify-center hover:bg-primary-hover hover:scale-105 transition-all z-40"
-                    aria-label="Add Task"
+                    aria-label="Añadir Tarea"
                 >
                     <span className="material-symbols-outlined text-3xl">add</span>
                 </button>
@@ -103,7 +103,7 @@ const MainLayout: React.FC = () => {
                         <div className="relative w-full max-w-sm h-full bg-surface-light shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col">
                             {/* Drawer Header with Close Button */}
                             <div className="p-4 border-b border-border-light flex justify-between items-center bg-gray-50">
-                                <h3 className="font-bold text-lg">Add New Task</h3>
+                                <h3 className="font-bold text-lg">Añadir Tarea</h3>
                                 <button
                                     onClick={() => setIsMobileTaskOpen(false)}
                                     className="size-8 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-colors"

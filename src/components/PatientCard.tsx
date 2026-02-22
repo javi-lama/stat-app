@@ -126,13 +126,13 @@ const PatientCard: React.FC<PatientCardProps> = ({
             // Optimistic update (local state already updated via input onChange)
             setIsEditingDiagnosis(false);
             await api.updatePatientDiagnosis(patientId, diagnosisText);
-            toast.success('Diagnosis updated');
+            toast.success('Diagnóstico actualizado');
             // Immediate Parent Refresh to update Dropdowns
             if (onRefresh) onRefresh();
         } catch (error) {
             console.error('Diagnosis update failed:', error);
             setDiagnosisText(diagnosis); // Rollback
-            toast.error('Failed to update diagnosis');
+            toast.error('Error al actualizar el diagnóstico');
         }
     };
 
@@ -146,18 +146,18 @@ const PatientCard: React.FC<PatientCardProps> = ({
         try {
             setIsEditingBed(false);
             await api.updateBedNumber(patientId, bedNumberText);
-            toast.success('Bed number updated');
+            toast.success('Número de cama actualizado');
             if (onRefresh) onRefresh(); // Trigger re-sort
         } catch (error) {
             console.error('Bed update failed:', error);
             setBedNumberText(bedNumber); // Rollback
-            toast.error('Failed to update bed number');
+            toast.error('Error al actualizar el número de cama');
         }
     };
 
     // Task Description Edit Handler
     const handleEditTask = async (taskId: string, currentDescription: string, taskType: PatientTask['type']) => {
-        const newDescription = window.prompt("Edit task description:", currentDescription);
+        const newDescription = window.prompt("Editar descripción de la tarea:", currentDescription);
         if (newDescription === null || newDescription === currentDescription) return;
         if (newDescription.trim() === "") return;
 
@@ -171,18 +171,18 @@ const PatientCard: React.FC<PatientCardProps> = ({
         try {
             // Fix: Pass taskType so API knows to re-apply Polyfill Tags (e.g. [Consult])
             await api.updateTaskDescription(taskId, newDescription, taskType);
-            toast.success('Task description updated');
+            toast.success('Descripción de la tarea actualizada');
         } catch (error) {
             console.error('Task update failed:', error);
             setTasksState(previousTasks); // Rollback
-            toast.error('Failed to update task');
+            toast.error('Error al actualizar la tarea');
         }
     };
 
 
     // Task Delete Handler
     const handleDeleteTask = async (taskId: string, taskDate: string) => {
-        if (!window.confirm("Are you sure you want to delete this task?")) return;
+        if (!window.confirm("¿Estás seguro de que deseas borrar esta tarea?")) return;
 
         // Optimistic Update
         const previousTasks = [...tasksState];
@@ -192,26 +192,26 @@ const PatientCard: React.FC<PatientCardProps> = ({
         try {
             await api.deleteTask(taskId, taskDate);
 
-            toast.success('Task deleted', {
+            toast.success('Tarea borrada', {
                 action: {
-                    label: 'UNDO',
+                    label: 'DESHACER',
                     onClick: async () => {
                         // Optimistic Restore
                         setTasksState(previousTasks);
-                        const loadingToast = toast.loading("Restoring task...");
+                        const loadingToast = toast.loading("Restaurando tarea...");
                         try {
                             await api.restoreTasks([taskId]);
                             // If parent refresh is available, trigger it to be safe, 
                             // though local state restore handles the UI immediately.
                             if (onRefresh) onRefresh();
                             toast.dismiss(loadingToast);
-                            toast.success("Task restored");
+                            toast.success("Tarea restaurada");
                         } catch (err) {
                             console.error("Restore failed", err);
                             // Rollback (item is technically gone from DB if restore fails, so remove it again)
                             setTasksState(updatedTasks);
                             toast.dismiss(loadingToast);
-                            toast.error("Failed to restore task");
+                            toast.error("Error al restaurar la tarea");
                         }
                     }
                 },
@@ -226,7 +226,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
         } catch (error) {
             console.error('Task deletion failed:', error);
             setTasksState(previousTasks); // Rollback
-            toast.error('Failed to delete task');
+            toast.error('Error al borrar la tarea');
         }
     };
 
@@ -236,7 +236,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
     const handleDeleteBed = () => {
         if (!onDelete) return;
         const confirm = window.confirm(
-            `⚠️ DANGER ZONE: This will permanently delete Bed ${bedNumber} and ALL its history/tasks.\n\nAre you sure?`
+            `⚠️ ZONA DE PELIGRO: Esto borrará permanentemente la Cama ${bedNumber} y TODO su historial/tareas.\n\n¿Estás seguro?`
         );
         if (confirm) {
             onDelete(patientId);
@@ -269,7 +269,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
                         handleDeleteBed();
                     }}
                     className="absolute -top-3 -right-3 size-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform z-20 cursor-pointer"
-                    title="Delete Bed"
+                    title="Borrar Cama"
                 >
                     <span className="material-symbols-outlined text-lg">close</span>
                 </button>
@@ -343,7 +343,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
                                     ? "bg-white border rounded px-2 py-1 border-primary/50 shadow-sm" // Config Mode: Visual Input Box
                                     : "border-b border-primary" // Normal Edit: Underline
                             )}
-                            placeholder={isConfigMode ? "Edit Diagnosis..." : ""}
+                            placeholder={isConfigMode ? "Editar Diagnóstico..." : ""}
                             onClick={(e) => e.stopPropagation()}
                         />
                     ) : (
@@ -436,13 +436,13 @@ const PatientCard: React.FC<PatientCardProps> = ({
                                         onClick={() => handleEditTask(task.id, task.description, task.type)}
                                         className="text-[10px] text-secondary hover:text-primary hover:bg-gray-100 rounded px-1.5 py-0.5 font-bold uppercase tracking-wide transition-colors"
                                     >
-                                        Edit
+                                        Editar
                                     </button>
                                     <button
                                         onClick={() => handleDeleteTask(task.id, task.task_date || '')}
                                         className="text-[10px] text-red-400 hover:text-red-500 hover:bg-red-50 rounded px-1.5 py-0.5 font-bold uppercase tracking-wide transition-colors"
                                     >
-                                        Delete
+                                        Borrar
                                     </button>
                                 </div>
                             </div>
@@ -452,7 +452,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
                 {tasksState.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-4 text-gray-400">
                         <span className="material-symbols-outlined text-3xl mb-1 opacity-50">task</span>
-                        <span className="text-xs">No active tasks</span>
+                        <span className="text-xs">Sin tareas activas</span>
                     </div>
                 )}
             </div>

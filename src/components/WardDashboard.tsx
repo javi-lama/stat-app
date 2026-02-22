@@ -118,7 +118,7 @@ const WardDashboard: React.FC = () => {
 
     const handleClearTasks = async () => {
         const dateStr = formatDateForUI(selectedDate);
-        if (!confirm(`Are you sure you want to DELETE ALL TASKS for ${dateStr}? This cannot be undone.`)) return;
+        if (!confirm(`¿Seguro que deseas BORRAR TODAS LAS TAREAS para el ${dateStr}? Esto no se puede deshacer.`)) return;
 
         try {
             // Convert to DB format YYYY-MM-DD
@@ -129,20 +129,20 @@ const WardDashboard: React.FC = () => {
             const deletedIds = await api.clearTasksForDate(dbDate);
             refresh();
 
-            toast.success(`All tasks for ${dateStr} deleted`, {
+            toast.success(`Todas las tareas del ${dateStr} fueron borradas`, {
                 action: {
-                    label: 'UNDO',
+                    label: 'DESHACER',
                     onClick: async () => {
-                        const loadingToast = toast.loading("Restoring tasks...");
+                        const loadingToast = toast.loading("Restaurando tareas...");
                         try {
                             await api.restoreTasks(deletedIds);
                             refresh();
                             toast.dismiss(loadingToast);
-                            toast.success("Tasks restored!");
+                            toast.success("¡Tareas restauradas!");
                         } catch (err) {
                             console.error("Restore failed", err);
                             toast.dismiss(loadingToast);
-                            toast.error("Failed to restore tasks");
+                            toast.error("Error al restaurar las tareas");
                         }
                     }
                 },
@@ -150,7 +150,7 @@ const WardDashboard: React.FC = () => {
             });
         } catch (err) {
             console.error(err);
-            toast.error("Failed to clear tasks");
+            toast.error("Error al borrar las tareas");
         }
     };
 
@@ -158,7 +158,7 @@ const WardDashboard: React.FC = () => {
         // 1. Limit Check
         // Count actual "cards" (patients).
         if (patients.length >= 30) {
-            toast.error("Maximum capacity reached (30 beds). Cannot add more.");
+            toast.error("Capacidad máxima alcanzada (30 camas). No se pueden añadir más.");
             return;
         }
 
@@ -173,11 +173,11 @@ const WardDashboard: React.FC = () => {
             const newBedNumber = (maxBed + 1).toString();
 
             await api.addPatient(newBedNumber);
-            toast.success(`Bed ${newBedNumber} added successfully`);
+            toast.success(`Cama ${newBedNumber} añadida exitosamente`);
             refresh();
         } catch (err) {
             console.error('Add bed failed', err);
-            toast.error('Failed to add bed');
+            toast.error('Error al añadir cama');
         }
     };
 
@@ -185,18 +185,18 @@ const WardDashboard: React.FC = () => {
         // Confirmation is handled in PatientCard before calling this
         try {
             await api.deletePatient(patientId);
-            toast.success("Bed deleted");
+            toast.success("Cama borrada");
             refresh();
         } catch (err) {
             console.error('Delete bed failed', err);
-            toast.error('Failed to delete bed');
+            toast.error('Error al borrar la cama');
         }
     };
 
     if (loading && (!patients || patients.length === 0)) {
         return (
             <div className="flex items-center justify-center h-full">
-                <p className="text-secondary animate-pulse">Loading Ward Census...</p>
+                <p className="text-secondary animate-pulse">Cargando Censo...</p>
             </div>
         );
     }
@@ -207,7 +207,7 @@ const WardDashboard: React.FC = () => {
                 <div className="bg-red-50 text-red-600 p-4 rounded-lg border border-red-200">
                     <p className="font-bold">Error</p>
                     <p>{error}</p>
-                    <button onClick={refresh} className="text-sm underline mt-2">Retry</button>
+                    <button onClick={refresh} className="text-sm underline mt-2">Reintentar</button>
                 </div>
             </div>
         );
@@ -224,7 +224,7 @@ const WardDashboard: React.FC = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 <div className="bg-white p-4 rounded-xl border border-border-light border-l-4 border-l-primary shadow-sm flex items-center justify-between min-h-[100px]">
                     <div>
-                        <p className="text-xs text-secondary font-semibold uppercase">Daily Progress</p>
+                        <p className="text-xs text-secondary font-semibold uppercase">Progreso Diario</p>
                         <div className="flex items-baseline gap-1 mt-1">
                             <p className={`text-2xl font-bold ${globalProgress.textClass}`}>{globalProgress.percentage}%</p>
                             <p className="text-[10px] text-secondary font-medium">{globalProgress.completedSteps}/{globalProgress.totalSteps}</p>
@@ -261,7 +261,7 @@ const WardDashboard: React.FC = () => {
                 {/* Pending Labs - Example Static or Calculation */}
                 <div className="bg-white p-4 rounded-xl border border-border-light border-l-4 border-l-primary shadow-sm flex items-center justify-between min-h-[100px]">
                     <div>
-                        <p className="text-xs text-secondary font-semibold uppercase">Pending Labs</p>
+                        <p className="text-xs text-secondary font-semibold uppercase">Labs Pendientes</p>
                         <p className="text-2xl font-bold text-primary">
                             {/* Mock calculation: tasks of type 'lab' that are not completed? */}
                             {patients.flatMap(p => p.tasks || []).filter(t => t.type === 'lab' && !t.is_completed).length}
@@ -274,7 +274,7 @@ const WardDashboard: React.FC = () => {
                 {/* Pending Consults - Example Static or Calculation */}
                 <div className="bg-white p-4 rounded-xl border border-border-light border-l-4 border-l-success shadow-sm flex items-center justify-between min-h-[100px]">
                     <div>
-                        <p className="text-xs text-secondary font-semibold uppercase">Pending Consults</p>
+                        <p className="text-xs text-secondary font-semibold uppercase">Consultas Pendientes</p>
                         <p className="text-2xl font-bold text-success">
                             {/* Count tasks strictly of type 'consult' that are not completed */}
                             {patients.flatMap(p => p.tasks || []).filter(t => t.type === 'consult' && !t.is_completed).length}
@@ -287,7 +287,7 @@ const WardDashboard: React.FC = () => {
                 {/* Pending Images - Example Static or Calculation */}
                 <div className="bg-white p-4 rounded-xl border border-border-light border-l-4 border-l-purple-500 shadow-sm flex items-center justify-between min-h-[100px]">
                     <div>
-                        <p className="text-xs text-secondary font-semibold uppercase">Pending Images</p>
+                        <p className="text-xs text-secondary font-semibold uppercase">Imágenes Pendientes</p>
                         <p className="text-2xl font-bold text-purple-600">
                             {/* Use 'imaging' based on types.ts */}
                             {patients.flatMap(p => p.tasks || []).filter(t => t.type === 'imaging' && !t.is_completed).length}
@@ -342,28 +342,28 @@ const WardDashboard: React.FC = () => {
                     {isToday && (
                         <button
                             onClick={async () => {
-                                const toastId = toast.loading('Importing pending tasks...');
+                                const toastId = toast.loading('Importando tareas pendientes...');
                                 try {
                                     const result = await api.importPendingTasksFromYesterday(selectedDate);
                                     if (result.skipped) {
-                                        toast.error('Tasks already imported today!', { id: toastId });
+                                        toast.error('¡Las tareas ya fueron importadas hoy!', { id: toastId });
                                     } else if (result.count === 0) {
-                                        toast.info('No pending tasks from yesterday.', { id: toastId });
+                                        toast.info('No hay tareas pendientes de ayer.', { id: toastId });
                                     } else {
-                                        toast.success(`Imported ${result.count} tasks from yesterday.`, { id: toastId });
+                                        toast.success(`Se importaron ${result.count} tareas de ayer.`, { id: toastId });
                                         refresh(); // Reload Dashboard
                                     }
                                 } catch (error) {
                                     console.error(error);
-                                    toast.error('Failed to import tasks.', { id: toastId });
+                                    toast.error('Error al importar tareas.', { id: toastId });
                                 }
                             }}
                             className="relative group border border-primary text-sm font-bold min-h-11 py-2 px-3 sm:px-4 rounded-lg shadow-sm flex items-center gap-2 transition-all active:scale-[0.98] bg-white text-primary hover:bg-primary hover:text-white focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                            title="Import pending tasks from yesterday"
-                            aria-label="Import pending tasks from yesterday"
+                            title="Importar tareas pendientes de ayer"
+                            aria-label="Importar tareas pendientes de ayer"
                         >
                             <span className="material-symbols-outlined text-[18px]">autorenew</span>
-                            <span className="hidden sm:inline">Import Pending</span>
+                            <span className="hidden sm:inline">Importar Pendientes</span>
                         </button>
                     )}
 
@@ -380,10 +380,10 @@ const WardDashboard: React.FC = () => {
                                     : 'bg-white border-primary text-primary hover:bg-primary hover:text-white'
                                 }
                             `}
-                            aria-label="Filter tasks"
+                            aria-label="Filtrar tareas"
                         >
                             <span className="material-symbols-outlined text-[18px]">filter_list</span>
-                            <span className="hidden sm:inline">Filter</span>
+                            <span className="hidden sm:inline">Filtrar</span>
                             {activeFilterCount > 0 && (
                                 <span className="absolute -top-1.5 -right-1.5 size-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm">
                                     {activeFilterCount}
@@ -402,7 +402,7 @@ const WardDashboard: React.FC = () => {
 
                                 <div className="fixed bottom-0 inset-x-0 rounded-t-2xl max-h-[60vh] overflow-y-auto sm:absolute sm:bottom-auto sm:inset-auto sm:left-0 sm:mt-2 sm:w-56 sm:rounded-xl sm:max-h-none bg-white shadow-lg border border-border-light z-50 p-3 sm:p-2 flex flex-col gap-1" role="menu">
                                     <div className="px-3 py-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                        Focus Mode
+                                        Modo Enfoque
                                     </div>
                                     <label className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors" role="menuitem">
                                         <input
@@ -411,7 +411,7 @@ const WardDashboard: React.FC = () => {
                                             onChange={() => toggleFilter('unfinished')}
                                             className="form-checkbox text-primary rounded border-secondary/50 focus:ring-primary h-4 w-4"
                                         />
-                                        <span className="text-sm font-medium text-text-main">Unfinished Tasks</span>
+                                        <span className="text-sm font-medium text-text-main">Tareas Incompletas</span>
                                     </label>
 
                                     <div className="h-px bg-border-light my-1 mx-2"></div>
@@ -432,7 +432,7 @@ const WardDashboard: React.FC = () => {
                                             onChange={() => toggleFilter('imaging')}
                                             className="form-checkbox text-primary rounded border-secondary/50 focus:ring-primary h-4 w-4"
                                         />
-                                        <span className="text-sm font-medium text-text-main">Images</span>
+                                        <span className="text-sm font-medium text-text-main">Imágenes</span>
                                     </label>
                                     <label className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors" role="menuitem">
                                         <input
@@ -441,7 +441,7 @@ const WardDashboard: React.FC = () => {
                                             onChange={() => toggleFilter('consults')}
                                             className="form-checkbox text-primary rounded border-secondary/50 focus:ring-primary h-4 w-4"
                                         />
-                                        <span className="text-sm font-medium text-text-main">Consults</span>
+                                        <span className="text-sm font-medium text-text-main">Consultas</span>
                                     </label>
                                 </div>
                             </>
@@ -453,10 +453,10 @@ const WardDashboard: React.FC = () => {
                         <button
                             onClick={() => setShowHandoffMenu(!showHandoffMenu)}
                             className="relative group border border-primary text-primary hover:bg-primary hover:text-white text-sm font-bold min-h-11 py-2 px-3 sm:px-4 rounded-lg shadow-sm flex items-center gap-2 transition-all active:scale-[0.98] bg-white focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                            aria-label="Generate hand-off report"
+                            aria-label="Generar reporte de entrega"
                         >
                             <span className="material-symbols-outlined text-[18px]">assignment</span>
-                            <span className="hidden sm:inline">Hand-off</span>
+                            <span className="hidden sm:inline">Entregar Guardia</span>
                         </button>
 
                         {showHandoffMenu && (
@@ -467,7 +467,7 @@ const WardDashboard: React.FC = () => {
                                 ></div>
                                 <div className="fixed bottom-0 inset-x-0 rounded-t-2xl max-h-[60vh] overflow-y-auto sm:absolute sm:bottom-auto sm:inset-auto sm:left-0 sm:mt-2 sm:w-56 sm:rounded-xl sm:max-h-none bg-white shadow-lg border border-border-light z-50 p-3 sm:p-2 flex flex-col gap-1" role="menu">
                                     <div className="px-3 py-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                        Generate Report
+                                        Generar Reporte
                                     </div>
                                     <button
                                         onClick={() => handleHandoff('all')}
@@ -475,7 +475,7 @@ const WardDashboard: React.FC = () => {
                                         role="menuitem"
                                     >
                                         <span className="material-symbols-outlined text-lg">description</span>
-                                        <span className="text-sm font-medium">Report All Tasks</span>
+                                        <span className="text-sm font-medium">Todas las Tareas</span>
                                     </button>
                                     <button
                                         onClick={() => handleHandoff('missing')}
@@ -483,7 +483,7 @@ const WardDashboard: React.FC = () => {
                                         role="menuitem"
                                     >
                                         <span className="material-symbols-outlined text-lg text-orange-500">warning</span>
-                                        <span className="text-sm font-medium">Pending Only</span>
+                                        <span className="text-sm font-medium">Solo Pendientes</span>
                                     </button>
                                 </div>
                             </>
@@ -500,12 +500,12 @@ const WardDashboard: React.FC = () => {
                                 : 'bg-white border-primary text-primary hover:bg-primary hover:text-white'
                             }
                         `}
-                        aria-label="Edit bed configuration"
+                        aria-label="Editar configuración de cama"
                     >
                         <span className="material-symbols-outlined text-[18px]">
                             {isConfigMode ? 'check' : 'tune'}
                         </span>
-                        <span className="hidden sm:inline">{isConfigMode ? 'Done' : 'Bed edit'}</span>
+                        <span className="hidden sm:inline">{isConfigMode ? 'Listo' : 'Editar Camas'}</span>
                     </button>
                 </div>
 
@@ -516,7 +516,7 @@ const WardDashboard: React.FC = () => {
                     onClick={handleClearTasks}
                     className="px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors"
                 >
-                    CLEAR TASKS
+                    BORRAR TAREAS
                 </button>
             </div>
 
@@ -576,8 +576,8 @@ const WardDashboard: React.FC = () => {
                         <div className="size-16 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                             <span className="material-symbols-outlined text-4xl text-primary">add</span>
                         </div>
-                        <h3 className="text-lg font-bold text-primary">Add Bed</h3>
-                        <p className="text-xs text-secondary mt-1">Capacity: {patients.length}/30</p>
+                        <h3 className="text-lg font-bold text-primary">Añadir Cama</h3>
+                        <p className="text-xs text-secondary mt-1">Capacidad: {patients.length}/30</p>
                     </div>
                 )}
 
@@ -585,7 +585,7 @@ const WardDashboard: React.FC = () => {
                 <div className="bg-surface-light rounded-xl shadow-sm border border-dashed border-border-light p-5 flex flex-col items-center justify-center min-h-[200px] opacity-60">
                     <span className="material-symbols-outlined text-4xl text-gray-300 mb-2">bed</span>
                     <h3 className="text-lg font-bold text-gray-400">Bed 12</h3>
-                    <p className="text-xs text-secondary">Unoccupied</p>
+                    <p className="text-xs text-secondary">Desocupada</p>
                 </div>
             </div>
         </div>

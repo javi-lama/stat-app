@@ -20,13 +20,13 @@ export const formatDateForUI = (date: Date): string => {
         month: 'short'
     };
 
-    const formatted = date.toLocaleDateString(undefined, options); // e.g. "Mon, Feb 1" or "Mon, 1 Feb" depending on locale
+    const formatted = date.toLocaleDateString('es-ES', options); // e.g. "Mon, Feb 1" or "Mon, 1 Feb" depending on locale
 
     if (isToday) {
-        // Replace Weekday with "Today" if it's today
+        // Replace Weekday with "Hoy" if it's today
         // We can just append the date part
-        const dayMonth = date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-        return `Today, ${dayMonth}`;
+        const dayMonth = date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+        return `Hoy, ${dayMonth}`;
     }
 
     return formatted;
