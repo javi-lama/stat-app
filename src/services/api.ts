@@ -3,7 +3,6 @@ import { formatDateForDB } from '../lib/dateUtils';
 import type { PatientCardProps, PatientTask } from '../types';
 
 // DB Types (Raw from Supabase)
-// DB Types (Raw from Supabase)
 export interface SupabaseTask {
     id: string;
     patient_id: string;
@@ -23,6 +22,7 @@ export interface SupabasePatient {
     diagnosis: string;
     status: 'stable' | 'critical' | 'discharge_ready';
     created_at: string;
+    ward_id?: string; // Ward association
     tasks?: SupabaseTask[]; // Joined property
 }
 
@@ -32,28 +32,32 @@ export const api = {
     supabase,
 
     /**
-     * Fetches all patients (beds) and their active tasks for a SPECIFIC DATE.
-     * Strategy: Split Query.
-     * 1. Get ALL Beds (Patients).
-     * 2. Get Tasks for the selected DATE.
-     * 3. Map Tasks to Beds.
+     * Fetches patients (beds) and their active tasks for a SPECIFIC DATE and WARD.
+     * Multi-Tenant Isolation: Only returns data for the specified ward.
      */
-    async getWardCensus(dateStr: string): Promise<SupabasePatient[]> {
-        // 1. Fetch All Patients (Beds) - Persistent
+    async getWardCensus(dateStr: string, wardId: string | null): Promise<SupabasePatient[]> {
+        // EARLY RETURN: No wardId = no data (security guard)
+        if (!wardId) {
+            console.warn('[API] getWardCensus called without wardId - returning empty');
+            return [];
+        }
+
+        // 1. Fetch Patients for THIS WARD only
         const { data: patients, error: patientError } = await supabase
             .from('patients')
-            .select('*');
+            .select('*')
+            .eq('ward_id', wardId);
 
         if (patientError) {
             console.error('Error fetching patients:', patientError);
             throw patientError;
         }
 
-        // 2. Fetch Tasks (All or Filtered by Due Date if possible, but Client Side is safer for fallback)
-        // Add Soft Delete Filter: .is('deleted_at', null)
-        const { data: tasksRaw, error: taskError } = await supabase
+        // 2. Fetch Tasks via INNER JOIN - only tasks for patients in this ward
+        const { data: tasksRawWithPatient, error: taskError } = await supabase
             .from('tasks')
-            .select('*')
+            .select('*, patients!inner(ward_id)')
+            .eq('patients.ward_id', wardId)
             .is('deleted_at', null);
 
         if (taskError) {
@@ -61,9 +65,16 @@ export const api = {
             throw taskError;
         }
 
-        // 3. Map Tasks to Patients (Client-Side Filtering)
+        // 3. SANITIZATION: Remove nested 'patients' property from task objects
+        // Inner join mutates payload adding { patients: { ward_id } }
+        const tasksRaw = (tasksRawWithPatient || []).map((task: any) => {
+            const { patients: _removed, ...cleanTask } = task;
+            return cleanTask as SupabaseTask;
+        });
+
+        // 4. Map Tasks to Patients (Client-Side Date Filtering)
         const patientsWithTasks = patients?.map(patient => {
-            const patientTasks = tasksRaw?.filter((t: SupabaseTask) => {
+            const patientTasks = tasksRaw.filter((t: SupabaseTask) => {
                 const isActiveDate = (t.due_date ? String(t.due_date).substring(0, 10) : formatDateForDB(new Date(t.created_at))) === dateStr;
                 return t.patient_id === patient.id && isActiveDate;
             }) || [];
@@ -74,7 +85,7 @@ export const api = {
             };
         });
 
-        // Numeric Sort for correct ordering (89 -> 100)
+        // 5. Numeric Sort for correct ordering (89 -> 100)
         if (patientsWithTasks) {
             patientsWithTasks.sort((a, b) => {
                 return a.bed_number.localeCompare(b.bed_number, undefined, { numeric: true, sensitivity: 'base' });
@@ -232,9 +243,15 @@ export const api = {
 
     /**
      * Smart Carry-Over: Imports pending tasks from Yesterday to Today.
-     * Checks for duplicates to prevent double-importing.
+     * Multi-Tenant: Only imports tasks for patients in the specified ward.
      */
-    async importPendingTasksFromYesterday(targetDate: Date): Promise<{ count: number; skipped: boolean }> {
+    async importPendingTasksFromYesterday(targetDate: Date, wardId: string | null): Promise<{ count: number; skipped: boolean }> {
+        // EARLY RETURN: No wardId = no import
+        if (!wardId) {
+            console.warn('[API] importPendingTasksFromYesterday called without wardId - skipping');
+            return { count: 0, skipped: false };
+        }
+
         // 1. Calculate Dates
         const yesterday = new Date(targetDate);
         yesterday.setDate(yesterday.getDate() - 1);
@@ -242,40 +259,20 @@ export const api = {
         const targetDateStr = formatDateForDB(targetDate);
         const yesterdayStr = formatDateForDB(yesterday);
 
-        // 2. Fetch Data (Reuse Census Logic for consistency)
-        // We need raw tasks really, but getWardCensus gives us patient-grouped tasks.
-        // It's cleaner to reuse the *logic* of getWardCensus but we are inside api,
-        // so we can call getWardCensus directly if we want, OR just fetch tasks.
-        // Let's call getWardCensus to rely on the "Active Date" filtering logic we just mocked/fixed.
-        const yesterdayCensus = await this.getWardCensus(yesterdayStr);
+        // 2. Fetch Raw Tasks with Ward Filter via INNER JOIN
+        const { data: allTasksRawWithPatient, error } = await supabase
+            .from('tasks')
+            .select('*, patients!inner(ward_id)')
+            .eq('patients.ward_id', wardId)
+            .is('deleted_at', null);
 
-        // 3. Extract Tasks
-        // Flatten tasks from all patients
-        const yesterdayTasks: PatientTask[] = yesterdayCensus.flatMap(p => p.tasks || []);
-
-
-        // 4. Filter Pending from Yesterday
-        const pendingToImport = yesterdayTasks.filter(t => !t.is_completed);
-
-        if (pendingToImport.length === 0) {
-            return { count: 0, skipped: false };
-        }
-
-        // 5. Check Duplicates (Safety Guard)
-        // If ANY pending task from yesterday matches a task in today (by description + patient), abort.
-        // We need patient_id. PatientTask has 'id', but not 'patientId' explicitly in interface usually?
-        // Wait, PatientTask interface in 'types.ts' might not have patientId?
-        // Let's check getWardCensus adapter.
-        // adaptPatientToCard maps tasks. The task object has 'id'.
-        // It does NOT have patient_id in PatientTask interface (UI).
-        // The SupabaseTask HAS patient_id.
-        // So relying on getWardCensus (UI Objects) loses patient_id context unless we map it.
-        // Strategy Change: Fetch RAW tasks using the same filter logic, or map patient_id.
-
-        // Simpler Strategy: Fetch Raw Tasks inside this function using the same robust filter.
-        // Add Soft Delete Filter Here too just in case
-        const { data: allTasksRaw, error } = await supabase.from('tasks').select('*').is('deleted_at', null);
         if (error) throw error;
+
+        // SANITIZATION: Remove nested patients property
+        const allTasksRaw = (allTasksRawWithPatient || []).map((task: any) => {
+            const { patients: _removed, ...cleanTask } = task;
+            return cleanTask as SupabaseTask;
+        });
 
         // Filter for Yesterday (Pending)
         const pendingRawYesterday = allTasksRaw.filter((t: SupabaseTask) => {
@@ -288,6 +285,10 @@ export const api = {
             const tDate = t.due_date ? String(t.due_date).substring(0, 10) : formatDateForDB(new Date(t.created_at));
             return tDate === targetDateStr;
         });
+
+        if (pendingRawYesterday.length === 0) {
+            return { count: 0, skipped: false };
+        }
 
         // Duplicate Check
         const hasDuplicates = pendingRawYesterday.some(yTask => {
@@ -302,15 +303,14 @@ export const api = {
             return { count: 0, skipped: true };
         }
 
-        // 6. Bulk Insert
+        // Bulk Insert
         if (pendingRawYesterday.length > 0) {
             const newTasks = pendingRawYesterday.map(t => ({
                 patient_id: t.patient_id,
                 description: t.description,
                 type: t.type,
                 is_completed: false,
-                steps: t.steps, // Preserve progress checkboxes? No, request says "Mantener IGUAL".
-                // "checklist_status: Mantener IGUAL al original"
+                steps: t.steps,
                 due_date: targetDateStr
             }));
 
@@ -358,17 +358,10 @@ export const api = {
             finalDescription = `[Supervision] ${newDescription}`;
         }
 
-        // For Native Types (Lab, Imaging, etc), we just send the description.
-        // We do NOT update the 'type' column explicitly unless we want to enforce consistency,
-        // but the bug report focuses on description edit clearing the category.
-        // Sending { description: ... } is sufficient for native types.
-
         const { error } = await supabase
             .from('tasks')
             .update({
                 description: finalDescription,
-                // Optional: We could enforce type preservation here if we wanted:
-                // type: (taskType === 'consult' || taskType === 'paperwork' || taskType === 'supervision') ? 'admin' : taskType 
             })
             .eq('id', taskId);
 
@@ -396,16 +389,23 @@ export const api = {
     },
 
     /**
-     * SAFE Bulk Delete: Soft Deletes tasks for a specific date.
-     * Returns the IDs of the deleted tasks for Undo.
+     * SAFE Bulk Delete: Soft Deletes tasks for a specific date and ward.
+     * Multi-Tenant: Only deletes tasks for patients in the specified ward.
      */
-    async clearTasksForDate(dateStr: string): Promise<string[]> {
-        // 1. Fetch IDs to be deleted (for Undo)
+    async clearTasksForDate(dateStr: string, wardId: string | null): Promise<string[]> {
+        // EARLY RETURN: No wardId = no deletion
+        if (!wardId) {
+            console.warn('[API] clearTasksForDate called without wardId - skipping');
+            return [];
+        }
+
+        // 1. Fetch IDs with ward filter via INNER JOIN
         const { data: tasksToDelete, error: fetchError } = await supabase
             .from('tasks')
-            .select('id')
+            .select('id, patients!inner(ward_id)')
+            .eq('patients.ward_id', wardId)
             .eq('due_date', dateStr)
-            .is('deleted_at', null); // Only select active tasks
+            .is('deleted_at', null);
 
         if (fetchError) {
             console.error('Error fetching tasks for deletion:', fetchError);
@@ -414,7 +414,7 @@ export const api = {
 
         if (!tasksToDelete || tasksToDelete.length === 0) return [];
 
-        const ids = tasksToDelete.map(t => t.id);
+        const ids = tasksToDelete.map((t: any) => t.id);
 
         // 2. Perform Soft Delete
         const { error } = await supabase
@@ -448,15 +448,22 @@ export const api = {
     },
 
     /**
-     * Adds a new patient (bed) to the ward.
+     * Adds a new patient (bed) to the specified ward.
+     * Multi-Tenant: Associates patient with wardId.
      */
-    async addPatient(bedNumber: string): Promise<void> {
+    async addPatient(bedNumber: string, wardId: string): Promise<void> {
+        // Security: wardId is required (strict validation for empty strings)
+        if (!wardId || wardId.trim() === '') {
+            throw new Error('[SECURITY] wardId is required to add a patient - received empty or null value');
+        }
+
         const { error } = await supabase
             .from('patients')
             .insert([{
                 bed_number: bedNumber,
-                status: 'stable', // Default status
-                diagnosis: '', // Empty diagnosis
+                ward_id: wardId, // MULTI-TENANT: Associate with ward
+                status: 'stable',
+                diagnosis: '',
                 admission_date: new Date().toISOString()
             }]);
 

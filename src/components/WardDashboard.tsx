@@ -1,14 +1,14 @@
 import React from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { cn } from '../lib/utils';
 import PatientCard from './PatientCard';
 import { api } from '../services/api';
 import type { Patient, PatientTask } from '../types';
 import { calculateTaskProgress } from '../lib/progressUtils';
 import { generateHandoffText } from '../lib/handoffGenerator';
 import { toast } from 'sonner';
+import { useAppContext } from '../contexts/AppContext';
 
-import { formatDateForUI, addDays } from '../lib/dateUtils';
+import { formatDateForUI } from '../lib/dateUtils';
 
 interface DashboardContextType {
     patients: (Patient & { tasks: PatientTask[] })[];
@@ -22,11 +22,12 @@ interface DashboardContextType {
 
 const WardDashboard: React.FC = () => {
     // Consume Context from MainLayout
-    const { patients, loading, error, refresh, selectedDate, setSelectedDate } = useOutletContext<DashboardContextType>();
+    const { patients, loading, error, refresh, selectedDate } = useOutletContext<DashboardContextType>();
 
-    // Date Navigation Handlers
-    const handlePrevDay = () => setSelectedDate(addDays(selectedDate, -1));
-    const handleNextDay = () => setSelectedDate(addDays(selectedDate, 1));
+    // Multi-Tenant: Get active ward from AppContext
+    const { activeWard } = useAppContext();
+
+    // Date Navigation Handlers (MOVED TO MAINLAYOUT)
     const isToday = new Date().toDateString() === selectedDate.toDateString();
 
     // State for Smart Filters
@@ -117,6 +118,11 @@ const WardDashboard: React.FC = () => {
     // --- Bed CRUD Logic ---
 
     const handleClearTasks = async () => {
+        if (!activeWard?.id) {
+            toast.error('No hay servicio médico activo');
+            return;
+        }
+
         const dateStr = formatDateForUI(selectedDate);
         if (!confirm(`¿Seguro que deseas BORRAR TODAS LAS TAREAS para el ${dateStr}? Esto no se puede deshacer.`)) return;
 
@@ -125,8 +131,8 @@ const WardDashboard: React.FC = () => {
             const offsetDate = new Date(selectedDate.getTime() - (selectedDate.getTimezoneOffset() * 60000));
             const dbDate = offsetDate.toISOString().split('T')[0];
 
-            // Update: clearTasksForDate now returns IDs of deleted tasks
-            const deletedIds = await api.clearTasksForDate(dbDate);
+            // Multi-Tenant: Pass wardId for ward-scoped deletion
+            const deletedIds = await api.clearTasksForDate(dbDate, activeWard.id);
             refresh();
 
             toast.success(`Todas las tareas del ${dateStr} fueron borradas`, {
@@ -155,6 +161,12 @@ const WardDashboard: React.FC = () => {
     };
 
     const handleAddBed = async () => {
+        // Multi-Tenant: Require active ward
+        if (!activeWard?.id) {
+            toast.error('No hay servicio médico activo');
+            return;
+        }
+
         // 1. Limit Check
         // Count actual "cards" (patients).
         if (patients.length >= 30) {
@@ -169,10 +181,11 @@ const WardDashboard: React.FC = () => {
                 const num = parseInt(p.bed_number) || parseInt(anyP.bedNumber) || 0;
                 return num;
             });
-            const maxBed = occupiedNumbers.length > 0 ? Math.max(...occupiedNumbers) : 86; // Start at 86-1 if empty? Or just 1. Let's assume 86 as baseline if list empty, else max.
+            const maxBed = occupiedNumbers.length > 0 ? Math.max(...occupiedNumbers) : 86;
             const newBedNumber = (maxBed + 1).toString();
 
-            await api.addPatient(newBedNumber);
+            // Multi-Tenant: Associate patient with ward
+            await api.addPatient(newBedNumber, activeWard.id);
             toast.success(`Cama ${newBedNumber} añadida exitosamente`);
             refresh();
         } catch (err) {
@@ -305,69 +318,47 @@ const WardDashboard: React.FC = () => {
                 {/* Left Side: Filters + Handoff + Date Nav */}
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
 
-                    {/* DATE NAVIGATION */}
-                    <div className={cn(
-                        "flex items-center gap-1 bg-white rounded-lg shadow-sm border py-1 px-2 transition-colors min-h-11",
-                        !isToday ? "border-amber-400 bg-amber-50" : "border-primary"
-                    )}>
-                        <button
-                            onClick={handlePrevDay}
-                            className={cn(
-                                "p-1 rounded-md transition-colors active:scale-95",
-                                !isToday ? "hover:bg-amber-200/50 text-amber-700" : "hover:bg-primary hover:text-white text-primary"
-                            )}
-                        >
-                            <span className="material-symbols-outlined text-xl">chevron_left</span>
-                        </button>
-                        <span className={cn(
-                            "mx-2 text-sm font-bold min-w-[100px] text-center select-none",
-                            !isToday ? "text-amber-700" : "text-primary"
-                        )}>
-                            {formatDateForUI(selectedDate)}
-                        </span>
-                        <button
-                            onClick={handleNextDay}
-                            className={cn(
-                                "p-1 rounded-md transition-colors active:scale-95",
-                                !isToday ? "hover:bg-amber-200/50 text-amber-700" : "hover:bg-primary hover:text-white text-primary"
-                            )}
-                        >
-                            <span className="material-symbols-outlined text-xl">chevron_right</span>
-                        </button>
-                    </div>
+                    {/* DATE NAVIGATION MOVED TO SECONDARY HEADER */}
 
-                    <div className="hidden sm:block w-px h-8 bg-border-light mx-1"></div>
-
-                    {/* Import Pending Button (Only Today) */}
+                    {/* Import Pending Button + Divider (Only Today) */}
                     {isToday && (
-                        <button
-                            onClick={async () => {
-                                const toastId = toast.loading('Importando tareas pendientes...');
-                                try {
-                                    const result = await api.importPendingTasksFromYesterday(selectedDate);
-                                    if (result.skipped) {
-                                        toast.error('¡Las tareas ya fueron importadas hoy!', { id: toastId });
-                                    } else if (result.count === 0) {
-                                        toast.info('No hay tareas pendientes de ayer.', { id: toastId });
-                                    } else {
-                                        toast.success(`Se importaron ${result.count} tareas de ayer.`, { id: toastId });
-                                        refresh(); // Reload Dashboard
+                        <>
+                            <button
+                                onClick={async () => {
+                                    // Multi-Tenant: Require active ward
+                                    if (!activeWard?.id) {
+                                        toast.error('No hay servicio médico activo');
+                                        return;
                                     }
-                                } catch (error) {
-                                    console.error(error);
-                                    toast.error('Error al importar tareas.', { id: toastId });
-                                }
-                            }}
-                            className="relative group border border-primary text-sm font-bold min-h-11 py-2 px-3 sm:px-4 rounded-lg shadow-sm flex items-center gap-2 transition-all active:scale-[0.98] bg-white text-primary hover:bg-primary hover:text-white focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                            title="Importar tareas pendientes de ayer"
-                            aria-label="Importar tareas pendientes de ayer"
-                        >
-                            <span className="material-symbols-outlined text-[18px]">autorenew</span>
-                            <span className="hidden sm:inline">Importar Pendientes</span>
-                        </button>
-                    )}
 
-                    <div className="hidden sm:block w-px h-8 bg-border-light mx-1"></div>
+                                    const toastId = toast.loading('Importando tareas pendientes...');
+                                    try {
+                                        // Multi-Tenant: Pass wardId for ward-scoped import
+                                        const result = await api.importPendingTasksFromYesterday(selectedDate, activeWard.id);
+                                        if (result.skipped) {
+                                            toast.error('¡Las tareas ya fueron importadas hoy!', { id: toastId });
+                                        } else if (result.count === 0) {
+                                            toast.info('No hay tareas pendientes de ayer.', { id: toastId });
+                                        } else {
+                                            toast.success(`Se importaron ${result.count} tareas de ayer.`, { id: toastId });
+                                            refresh(); // Reload Dashboard
+                                        }
+                                    } catch (error) {
+                                        console.error(error);
+                                        toast.error('Error al importar tareas.', { id: toastId });
+                                    }
+                                }}
+                                className="relative group border border-primary text-sm font-bold min-h-11 py-2 px-3 sm:px-4 rounded-lg shadow-sm flex items-center gap-2 transition-all active:scale-[0.98] bg-white text-primary hover:bg-primary hover:text-white focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                                title="Importar tareas pendientes de ayer"
+                                aria-label="Importar tareas pendientes de ayer"
+                            >
+                                <span className="material-symbols-outlined text-[18px]">autorenew</span>
+                                <span className="hidden sm:inline">Importar Pendientes</span>
+                            </button>
+                            {/* Divider - Conditional with Import Button */}
+                            <div className="hidden sm:block w-px h-8 bg-border-light mx-1"></div>
+                        </>
+                    )}
 
                     {/* Smart Filters */}
                     <div className="relative">

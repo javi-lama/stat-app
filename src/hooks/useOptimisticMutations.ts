@@ -47,6 +47,7 @@ interface PendingMutation {
  * @param tasksState - Current tasks state
  * @param setTasksState - State setter for tasks
  * @param onRefresh - Optional callback to refresh parent state
+ * @param wardPatientIds - Optional array of patient IDs in current ward for Cross-Ward validation
  * @returns Object with mutation functions and helpers
  *
  * @example
@@ -54,14 +55,16 @@ interface PendingMutation {
  *   patientId,
  *   tasksState,
  *   setTasksState,
- *   onRefresh
+ *   onRefresh,
+ *   wardPatientIds // Optional: enables Cross-Ward spoofing prevention
  * );
  */
 export const useOptimisticMutations = (
     patientId: string,
     tasksState: PatientTask[],
     setTasksState: React.Dispatch<React.SetStateAction<PatientTask[]>>,
-    onRefresh?: () => void
+    onRefresh?: () => void,
+    wardPatientIds?: string[] // Cross-Ward validation: array of patient IDs in current ward
 ) => {
     // Queue de mutaciones pendientes (previene race conditions)
     const pendingMutationsRef = useRef<Map<string, PendingMutation>>(new Map());
@@ -90,6 +93,14 @@ export const useOptimisticMutations = (
         type: PatientTask['type'],
         taskDate?: string
     ): Promise<void> => {
+        // === DEFENSIVE PROGRAMMING: Cross-Ward Validation ===
+        // If wardPatientIds is provided, verify patientId belongs to current ward
+        if (wardPatientIds && wardPatientIds.length > 0 && !wardPatientIds.includes(patientId)) {
+            toast.error('Error: Paciente no pertenece al servicio actual');
+            console.error('[SECURITY] Cross-Ward optimistic task blocked:', patientId);
+            return; // ABORT silently - do not create optimistic task
+        }
+
         // === FASE 1: TRUST (Optimistic Update) ===
 
         // 1.1. Generate unique tempId

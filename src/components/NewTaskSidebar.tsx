@@ -70,6 +70,18 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
 
     const executeCreateTask = async (data: NewTaskFormValues, targetDate: Date) => {
         setIsSubmitting(true);
+
+        // DEFENSIVE PROGRAMMING: Cross-Ward Spoofing Prevention
+        // Validates that patient_id belongs to current ward's patient list
+        // Prevents: DOM manipulation, race conditions, replay attacks
+        const patientBelongsToWard = patients.some(p => p.id === data.patient_id);
+        if (!patientBelongsToWard) {
+            toast.error('Error de seguridad: El paciente no pertenece al servicio actual');
+            console.error('[SECURITY] Cross-Ward task creation blocked:', data.patient_id);
+            setIsSubmitting(false);
+            return; // ABORT - Do not send to Supabase
+        }
+
         try {
             await api.createTask({
                 patient_id: data.patient_id,

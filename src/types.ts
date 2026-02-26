@@ -1,5 +1,18 @@
+export interface Ward {
+    id: string;
+    name: string;
+    created_at?: string;
+}
+
+export interface Profile {
+    id: string;
+    ward_id: string | null;
+    updated_at?: string;
+}
+
 export interface Patient {
     id: string;
+    ward_id: string | null;
     bed_number: string;
     diagnosis: string;
     status: 'stable' | 'critical' | 'discharge_ready';

@@ -40,6 +40,16 @@
 }
 
 @layer utilities {
+  /* Hide scrollbar for mobile tab overflow */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+
   @keyframes shake {
     0% {
       transform: rotate(0deg);

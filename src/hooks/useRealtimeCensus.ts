@@ -1,19 +1,43 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '../services/api';
 import type { PatientCardProps } from '../types';
 import { formatDateForDB } from '../lib/dateUtils';
 
-export const useRealtimeCensus = (selectedDate: Date) => {
+/**
+ * Multi-Tenant Realtime Census Hook
+ * Fetches and subscribes to patient/task data for a specific ward and date.
+ * Implements ward isolation via native filters and client-side gatekeeper.
+ */
+export const useRealtimeCensus = (selectedDate: Date, wardId: string | null) => {
     const [patients, setPatients] = useState<PatientCardProps[]>([]);
     const [rawPatients, setRawPatients] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // ANTI-STALE CLOSURE: Track current patients for task gatekeeper
+    // Realtime callbacks capture state at subscription time (closure)
+    // useRef maintains a mutable reference that always points to current value
+    const patientsRef = useRef<PatientCardProps[]>([]);
+
+    // Keep ref in sync with state
+    useEffect(() => {
+        patientsRef.current = patients;
+    }, [patients]);
+
     const fetchCensus = useCallback(async () => {
+        // EARLY RETURN: No wardId means no data to fetch
+        if (!wardId) {
+            console.log('[Census] No wardId - clearing data');
+            setPatients([]);
+            setRawPatients([]);
+            setLoading(false);
+            return;
+        }
+
         try {
-            console.log('[Census] Fetching latest data...');
+            console.log('[Census] Fetching data for ward:', wardId);
             const dateStr = formatDateForDB(selectedDate);
-            const raw = await api.getWardCensus(dateStr);
+            const raw = await api.getWardCensus(dateStr, wardId);
             setRawPatients(raw);
             const adapted = raw.map(api.adaptPatientToCard);
             setPatients(adapted);
@@ -24,17 +48,44 @@ export const useRealtimeCensus = (selectedDate: Date) => {
         } finally {
             setLoading(false);
         }
-    }, [selectedDate]);
+    }, [selectedDate, wardId]);
 
     useEffect(() => {
+        // EARLY RETURN: No subscription without wardId
+        if (!wardId) {
+            console.log('[Realtime] No wardId - skipping subscription');
+            setLoading(false);
+            return;
+        }
+
         // 1. Initial Fetch
         fetchCensus();
 
-        // 2. Realtime Subscription with State Reconciliation
-        console.log('[Realtime] Initializing subscription with STATE RECONCILIATION...');
+        // 2. Realtime Subscription with Ward Scoping
+        console.log('[Realtime] Initializing ward-scoped subscription:', wardId);
+
+        // Channel unique per WARD + DATE (prevents cross-ward data leakage)
+        const channelName = `realtime:census:${wardId}:${formatDateForDB(selectedDate)}`;
 
         const channel = api.supabase
-            .channel(`realtime:census:${formatDateForDB(selectedDate)}`) // Unique channel per date
+            .channel(channelName)
+            // PATIENTS: Native Supabase filter (ward_id = wardId)
+            // This filter is applied server-side by Supabase
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'patients',
+                    filter: `ward_id=eq.${wardId}` // NATIVE FILTER
+                },
+                (payload) => {
+                    console.log('[Realtime] Patient change (ward-filtered):', payload);
+                    // For patient changes (diagnosis, bed number, etc.), do full refetch
+                    fetchCensus();
+                }
+            )
+            // TASKS INSERT: Client-side Gatekeeper (Supabase doesn't support joins in Realtime filters)
             .on(
                 'postgres_changes',
                 {
@@ -43,25 +94,35 @@ export const useRealtimeCensus = (selectedDate: Date) => {
                     table: 'tasks'
                 },
                 (payload) => {
-                    console.log('[Realtime] INSERT event:', payload);
                     const newTask = payload.new as any;
+                    console.log('[Realtime] INSERT event (tasks):', newTask.id);
+
+                    // GATEKEEPER: Check if task's patient belongs to current ward
+                    // Uses ref (always current) instead of state (potentially stale)
+                    const currentPatients = patientsRef.current;
+                    const belongsToWard = currentPatients.some(
+                        p => p.patientId === newTask.patient_id
+                    );
+
+                    if (!belongsToWard) {
+                        console.log('[Realtime] Task rejected - patient not in ward:', newTask.patient_id);
+                        return; // Silently ignore tasks for other wards
+                    }
 
                     // STATE RECONCILIATION: Merge new task into state
                     setPatients(prevPatients => {
                         return prevPatients.map(patient => {
-                            // Check if this task belongs to this patient
                             if (patient.patientId !== newTask.patient_id) {
-                                return patient; // Not this patient, skip
-                            }
-
-                            // Check if task already exists (by ID) or is optimistic duplicate
-                            const taskExists = patient.tasks.some(t => t.id === newTask.id);
-                            if (taskExists) {
-                                console.log('[Realtime] Task already exists, skipping duplicate:', newTask.id);
                                 return patient;
                             }
 
-                            // Check if this is replacing an optimistic task
+                            const taskExists = patient.tasks.some(t => t.id === newTask.id);
+                            if (taskExists) {
+                                console.log('[Realtime] Task already exists, skipping:', newTask.id);
+                                return patient;
+                            }
+
+                            // Check for optimistic replacement
                             const optimisticIndex = patient.tasks.findIndex(
                                 t => t.isOptimistic &&
                                      t.description === newTask.description &&
@@ -69,15 +130,13 @@ export const useRealtimeCensus = (selectedDate: Date) => {
                             );
 
                             if (optimisticIndex !== -1) {
-                                console.log('[Realtime] Replacing optimistic task:', patient.tasks[optimisticIndex].id, '→', newTask.id);
-                                // Replace optimistic task with real task
+                                console.log('[Realtime] Replacing optimistic task:', patient.tasks[optimisticIndex].id);
                                 const adaptedTask = api.adaptPatientToCard({ tasks: [newTask] }).tasks[0];
                                 const newTasks = [...patient.tasks];
                                 newTasks[optimisticIndex] = adaptedTask;
                                 return { ...patient, tasks: newTasks };
                             }
 
-                            // Add new task (not a replacement)
                             console.log('[Realtime] Adding new task:', newTask.id);
                             const adaptedTask = api.adaptPatientToCard({ tasks: [newTask] }).tasks[0];
                             return {
@@ -88,6 +147,7 @@ export const useRealtimeCensus = (selectedDate: Date) => {
                     });
                 }
             )
+            // TASKS UPDATE: Client-side Gatekeeper
             .on(
                 'postgres_changes',
                 {
@@ -96,51 +156,51 @@ export const useRealtimeCensus = (selectedDate: Date) => {
                     table: 'tasks'
                 },
                 (payload) => {
-                    console.log('[Realtime] UPDATE event:', payload);
                     const updatedTask = payload.new as any;
+                    console.log('[Realtime] UPDATE event (tasks):', updatedTask.id);
 
-                    // 🔥 SOFT DELETE DETECTION: Check if deleted_at was set
+                    // GATEKEEPER
+                    const currentPatients = patientsRef.current;
+                    const belongsToWard = currentPatients.some(
+                        p => p.patientId === updatedTask.patient_id
+                    );
+
+                    if (!belongsToWard) {
+                        return; // Ignore updates for other wards
+                    }
+
+                    // Soft Delete Detection
                     if (updatedTask.deleted_at !== null && updatedTask.deleted_at !== undefined) {
                         console.log('[Realtime] Soft delete detected:', updatedTask.id);
-
-                        // Remove task from state (soft delete = visual delete)
                         setPatients(prevPatients => {
                             return prevPatients.map(patient => {
                                 const hasTask = patient.tasks.some(t => t.id === updatedTask.id);
-                                if (!hasTask) {
-                                    return patient; // Task not in this patient
-                                }
-
-                                console.log('[Realtime] Removing soft-deleted task:', updatedTask.id);
+                                if (!hasTask) return patient;
                                 return {
                                     ...patient,
                                     tasks: patient.tasks.filter(t => t.id !== updatedTask.id)
                                 };
                             });
                         });
-
-                        return; // Exit early, don't process as normal update
+                        return;
                     }
 
-                    // STATE RECONCILIATION: Update specific task (normal UPDATE)
+                    // Normal Update
                     setPatients(prevPatients => {
                         return prevPatients.map(patient => {
-                            // Find the task to update
                             const taskIndex = patient.tasks.findIndex(t => t.id === updatedTask.id);
-                            if (taskIndex === -1) {
-                                return patient; // Task not found in this patient
-                            }
+                            if (taskIndex === -1) return patient;
 
                             console.log('[Realtime] Updating task:', updatedTask.id);
                             const adaptedTask = api.adaptPatientToCard({ tasks: [updatedTask] }).tasks[0];
                             const newTasks = [...patient.tasks];
                             newTasks[taskIndex] = adaptedTask;
-
                             return { ...patient, tasks: newTasks };
                         });
                     });
                 }
             )
+            // TASKS DELETE: No gatekeeper needed (just check if task exists in state)
             .on(
                 'postgres_changes',
                 {
@@ -149,18 +209,13 @@ export const useRealtimeCensus = (selectedDate: Date) => {
                     table: 'tasks'
                 },
                 (payload) => {
-                    console.log('[Realtime] DELETE event:', payload);
                     const deletedTaskId = payload.old.id as string;
+                    console.log('[Realtime] DELETE event (tasks):', deletedTaskId);
 
-                    // STATE RECONCILIATION: Remove specific task
                     setPatients(prevPatients => {
                         return prevPatients.map(patient => {
                             const hasTask = patient.tasks.some(t => t.id === deletedTaskId);
-                            if (!hasTask) {
-                                return patient; // Task not in this patient
-                            }
-
-                            console.log('[Realtime] Removing task:', deletedTaskId);
+                            if (!hasTask) return patient;
                             return {
                                 ...patient,
                                 tasks: patient.tasks.filter(t => t.id !== deletedTaskId)
@@ -169,42 +224,31 @@ export const useRealtimeCensus = (selectedDate: Date) => {
                     });
                 }
             )
-            .on(
-                'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'patients'
-                },
-                (payload) => {
-                    console.log('[Realtime] Patient change detected:', payload);
-                    // For patient changes (diagnosis, bed number, etc.), do full refetch
-                    // This is safer as patient structure changes are less frequent
-                    fetchCensus();
-                }
-            )
             .subscribe((status) => {
-                console.log(`[Realtime] Subscription status: ${status}`);
+                console.log(`[Realtime] Subscription status (${channelName}):`, status);
                 if (status === 'SUBSCRIBED') {
-                    console.log('[Realtime] ✅ Connected - Real-time updates active');
+                    console.log('[Realtime] Connected - Ward-scoped updates active');
                 }
                 if (status === 'CHANNEL_ERROR') {
-                    console.error('[Realtime] ❌ Channel Error - Check Supabase dashboard & RLS policies');
+                    console.error('[Realtime] Channel Error - Check RLS policies');
                 }
                 if (status === 'TIMED_OUT') {
-                    console.error('[Realtime] ⏱️ Connection timed out - Retrying...');
+                    console.error('[Realtime] Connection timed out');
                 }
                 if (status === 'CLOSED') {
-                    console.warn('[Realtime] 🔌 Connection closed');
+                    console.warn('[Realtime] Connection closed');
                 }
             });
 
-        // 3. Cleanup
+        // 3. ROBUST CLEANUP: unsubscribe() then removeChannel()
+        // Prevents memory leaks from ghost channels
         return () => {
-            console.log('[Realtime] Disconnecting channel...');
-            api.supabase.removeChannel(channel);
+            console.log('[Realtime] Cleaning up channel:', channelName);
+            channel.unsubscribe().then(() => {
+                api.supabase.removeChannel(channel);
+            });
         };
-    }, [selectedDate]); // Only depend on selectedDate, not fetchCensus
+    }, [selectedDate, wardId]); // Dependencies: date AND ward
 
     return {
         patients,
