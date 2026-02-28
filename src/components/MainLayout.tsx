@@ -6,6 +6,7 @@ import NewTaskSidebar from './NewTaskSidebar';
 import { api } from '../services/api';
 import { useAppContext } from '../contexts/AppContext';
 import WardLobby from './WardLobby';
+import EvosBhTracker from './EvosBhTracker';
 
 const MainLayout: React.FC = () => {
     // Lifted State: Date Navigation
@@ -132,27 +133,24 @@ const MainLayout: React.FC = () => {
                 <div className="flex-none w-full bg-white border-b border-border-light z-20 shadow-sm flex items-center px-4 sm:px-8 py-2 gap-4">
 
                     {/* Date Navigation - Amber Warning State when !isToday */}
-                    <div className={`flex items-center rounded-full shadow-sm p-1 h-9 shrink-0 transition-colors ${
-                        isToday
-                            ? 'bg-white border border-slate-200'
-                            : 'bg-amber-50 border-2 border-amber-400'
-                    }`}>
+                    <div className={`flex items-center rounded-full shadow-sm p-1 h-9 shrink-0 transition-colors ${isToday
+                        ? 'bg-white border border-slate-200'
+                        : 'bg-amber-50 border-2 border-amber-400'
+                        }`}>
                         <button
                             onClick={() => {
                                 const newDate = new Date(selectedDate);
                                 newDate.setDate(newDate.getDate() - 1);
                                 setSelectedDate(newDate);
                             }}
-                            className={`px-2 h-full rounded-l-full hover:bg-slate-100 transition-colors flex items-center ${
-                                isToday ? 'text-primary' : 'text-amber-700'
-                            }`}
+                            className={`px-2 h-full rounded-l-full hover:bg-slate-100 transition-colors flex items-center ${isToday ? 'text-primary' : 'text-amber-700'
+                                }`}
                         >
                             <span className="material-symbols-outlined text-[16px]">chevron_left</span>
                         </button>
 
-                        <span className={`px-3 text-sm font-bold min-w-[100px] text-center uppercase tracking-wide whitespace-nowrap ${
-                            isToday ? 'text-primary' : 'text-amber-700'
-                        }`}>
+                        <span className={`px-3 text-sm font-bold min-w-[100px] text-center uppercase tracking-wide whitespace-nowrap ${isToday ? 'text-primary' : 'text-amber-700'
+                            }`}>
                             {isToday ? 'Hoy' : selectedDate.toLocaleDateString('es-ES', { weekday: 'short' })}, {selectedDate.toLocaleDateString('es-ES', { month: 'short', day: 'numeric' }).replace('.', '')}
                         </span>
 
@@ -162,9 +160,8 @@ const MainLayout: React.FC = () => {
                                 newDate.setDate(newDate.getDate() + 1);
                                 setSelectedDate(newDate);
                             }}
-                            className={`px-2 h-full rounded-r-full hover:bg-slate-100 transition-colors flex items-center ${
-                                isToday ? 'text-primary' : 'text-amber-700'
-                            }`}
+                            className={`px-2 h-full rounded-r-full hover:bg-slate-100 transition-colors flex items-center ${isToday ? 'text-primary' : 'text-amber-700'
+                                }`}
                         >
                             <span className="material-symbols-outlined text-[16px]">chevron_right</span>
                         </button>
@@ -196,11 +193,10 @@ const MainLayout: React.FC = () => {
                                             setActiveTab('dashboard');
                                             setIsTabDropdownOpen(false);
                                         }}
-                                        className={`w-full px-4 py-3 text-left text-sm font-bold tracking-wider flex items-center justify-between ${
-                                            activeTab === 'dashboard'
-                                                ? 'bg-[#30889E]/10 text-[#30889E]'
-                                                : 'text-slate-600 hover:bg-slate-50'
-                                        }`}
+                                        className={`w-full px-4 py-3 text-left text-sm font-bold tracking-wider flex items-center justify-between ${activeTab === 'dashboard'
+                                            ? 'bg-[#30889E]/10 text-[#30889E]'
+                                            : 'text-slate-600 hover:bg-slate-50'
+                                            }`}
                                     >
                                         DASHBOARD
                                         {activeTab === 'dashboard' && (
@@ -212,11 +208,10 @@ const MainLayout: React.FC = () => {
                                             setActiveTab('evos');
                                             setIsTabDropdownOpen(false);
                                         }}
-                                        className={`w-full px-4 py-3 text-left text-sm font-bold tracking-wider flex items-center justify-between ${
-                                            activeTab === 'evos'
-                                                ? 'bg-[#30889E]/10 text-[#30889E]'
-                                                : 'text-slate-600 hover:bg-slate-50'
-                                        }`}
+                                        className={`w-full px-4 py-3 text-left text-sm font-bold tracking-wider flex items-center justify-between ${activeTab === 'evos'
+                                            ? 'bg-[#30889E]/10 text-[#30889E]'
+                                            : 'text-slate-600 hover:bg-slate-50'
+                                            }`}
                                     >
                                         EVOS & BH
                                         {activeTab === 'evos' && (
@@ -232,21 +227,19 @@ const MainLayout: React.FC = () => {
                     <div className="hidden sm:flex items-center gap-2">
                         <button
                             onClick={() => setActiveTab('dashboard')}
-                            className={`px-6 py-2 font-bold text-sm tracking-wider rounded-lg whitespace-nowrap transition-colors ${
-                                activeTab === 'dashboard'
-                                    ? 'bg-[#30889E] text-white shadow-sm'
-                                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                            }`}
+                            className={`px-6 py-2 font-bold text-sm tracking-wider rounded-lg whitespace-nowrap transition-colors ${activeTab === 'dashboard'
+                                ? 'bg-[#30889E] text-white shadow-sm'
+                                : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                                }`}
                         >
                             DASHBOARD
                         </button>
                         <button
                             onClick={() => setActiveTab('evos')}
-                            className={`px-6 py-2 font-bold text-sm tracking-wider rounded-lg whitespace-nowrap transition-colors ${
-                                activeTab === 'evos'
-                                    ? 'bg-[#30889E] text-white shadow-sm'
-                                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                            }`}
+                            className={`px-6 py-2 font-bold text-sm tracking-wider rounded-lg whitespace-nowrap transition-colors ${activeTab === 'evos'
+                                ? 'bg-[#30889E] text-white shadow-sm'
+                                : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                                }`}
                         >
                             EVOS & BH
                         </button>
@@ -256,10 +249,14 @@ const MainLayout: React.FC = () => {
                     <div className="flex-1"></div>
                 </div>
 
-                <div className="flex flex-1 overflow-hidden relative">
-                    <main className="flex-1 overflow-y-auto bg-[#F8FAFC] p-4 lg:p-6">
-                        {/* Pass context to Dashboard */}
-                        <Outlet context={{ patients, rawPatients, loading, error, refresh, selectedDate, setSelectedDate }} />
+                <div className="flex flex-1 overflow-hidden relative bg-[#F8FAFC]">
+                    <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+                        {/* Tab Content Rendering */}
+                        {activeTab === 'dashboard' ? (
+                            <Outlet context={{ patients, rawPatients, loading, error, refresh, selectedDate, setSelectedDate }} />
+                        ) : (
+                            <EvosBhTracker patients={patients} selectedDate={selectedDate} />
+                        )}
 
                         {/* Premium Micro-Footer */}
                         <footer className="py-6 mt-8 text-center">
@@ -269,10 +266,12 @@ const MainLayout: React.FC = () => {
                         </footer>
                     </main>
 
-                    <aside className="w-80 2xl:w-96 z-20 hidden xl:flex flex-col border-l border-border-light bg-surface-light">
-                        {/* Sidebar Component fills the aside (Desktop) */}
-                        <NewTaskSidebar patients={sidebarPatients} onTaskCreated={refresh} selectedDate={selectedDate} />
-                    </aside>
+                    {activeTab === 'dashboard' && (
+                        <aside className="w-80 2xl:w-96 z-20 hidden xl:flex flex-col border-l border-border-light bg-surface-light shrink-0">
+                            {/* Sidebar Component fills the aside (Desktop) */}
+                            <NewTaskSidebar patients={sidebarPatients} onTaskCreated={refresh} selectedDate={selectedDate} />
+                        </aside>
+                    )}
 
 
 

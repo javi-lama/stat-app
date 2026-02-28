@@ -26,6 +26,16 @@ export interface SupabasePatient {
     tasks?: SupabaseTask[]; // Joined property
 }
 
+// DB Type for Daily Tracking (EVOS & BH)
+export interface SupabaseDailyTracking {
+    id: string;
+    patient_id: string;
+    tracking_date: string; // YYYY-MM-DD (DATE type returns as string)
+    evos_done: boolean;
+    bh_done: boolean;
+    updated_at: string;
+}
+
 // Service Functions
 export const api = {
     // Expose supabase client for Realtime subscriptions
@@ -488,5 +498,88 @@ export const api = {
             console.error('Error deleting patient:', error);
             throw error;
         }
+    },
+
+    // ============================================================
+    // EVOS & BH (Daily Tracking) API Functions
+    // ============================================================
+
+    /**
+     * Fetches all daily tracking records for a ward on a specific date.
+     * Multi-Tenant: Uses INNER JOIN to filter by ward_id through patients table.
+     *
+     * @param wardId - Active ward ID (null returns empty array)
+     * @param dateStr - Date in YYYY-MM-DD format (from formatDateForDB)
+     * @returns Array of tracking records for patients in the ward
+     */
+    async fetchDailyTracking(wardId: string | null, dateStr: string): Promise<SupabaseDailyTracking[]> {
+        // EARLY RETURN: No wardId = no data (security guard)
+        if (!wardId) {
+            console.warn('[API] fetchDailyTracking called without wardId - returning empty');
+            return [];
+        }
+
+        // INNER JOIN pattern: Filter by ward through patients table
+        const { data, error } = await supabase
+            .from('daily_tracking')
+            .select('*, patients!inner(ward_id)')
+            .eq('patients.ward_id', wardId)
+            .eq('tracking_date', dateStr);
+
+        if (error) {
+            console.error('Error fetching daily tracking:', error);
+            throw error;
+        }
+
+        // SANITIZATION: Remove nested 'patients' property from response
+        const sanitized = (data || []).map((record: any) => {
+            const { patients: _removed, ...cleanRecord } = record;
+            return cleanRecord as SupabaseDailyTracking;
+        });
+
+        return sanitized;
+    },
+
+    /**
+     * Toggles a tracking field (evos_done or bh_done) for a patient on a specific date.
+     * Uses UPSERT with conflict resolution on (patient_id, tracking_date).
+     * If record doesn't exist, creates it; if exists, updates it.
+     *
+     * @param patientId - Patient UUID
+     * @param dateStr - Date in YYYY-MM-DD format
+     * @param field - Field to toggle ('evos_done' | 'bh_done')
+     * @param value - New boolean value
+     * @returns The upserted tracking record
+     */
+    async toggleTracking(
+        patientId: string,
+        dateStr: string,
+        field: 'evos_done' | 'bh_done',
+        value: boolean
+    ): Promise<SupabaseDailyTracking> {
+        // Build upsert payload dynamically based on field
+        const upsertPayload: Record<string, any> = {
+            patient_id: patientId,
+            tracking_date: dateStr,
+            [field]: value
+        };
+
+        // UPSERT: Insert if not exists, update if exists
+        // onConflict targets the UNIQUE constraint columns
+        const { data, error } = await supabase
+            .from('daily_tracking')
+            .upsert(upsertPayload, {
+                onConflict: 'patient_id,tracking_date',
+                ignoreDuplicates: false // We want to update on conflict
+            })
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error toggling tracking:', error);
+            throw error;
+        }
+
+        return data as SupabaseDailyTracking;
     }
 };
