@@ -10,6 +10,7 @@ export interface PatientTracking {
     patientId: string;
     evosDone: boolean;
     bhDone: boolean;
+    assignedMd: string | null; // Responsible physician for this date
     recordId: string | null; // null if no record exists yet (will be created on first toggle)
 }
 
@@ -91,17 +92,19 @@ export const useEvosBh = (
                     patientId: record.patient_id,
                     evosDone: record.evos_done,
                     bhDone: record.bh_done,
+                    assignedMd: record.assigned_md,
                     recordId: record.id
                 });
             });
 
-            // Fill in patients with no records (default to false/false)
+            // Fill in patients with no records (default to false/false/null)
             patientIds.forEach(pid => {
                 if (!matrix.has(pid)) {
                     matrix.set(pid, {
                         patientId: pid,
                         evosDone: false,
                         bhDone: false,
+                        assignedMd: null,
                         recordId: null
                     });
                 }
@@ -176,6 +179,62 @@ export const useEvosBh = (
     }, [trackingMatrix, dateStr]);
 
     /**
+     * Update assigned_md for a patient with optimistic update.
+     * Called on input blur to prevent network spam.
+     */
+    const updateAssignedMd = useCallback(async (
+        patientId: string,
+        value: string | null
+    ) => {
+        const current = trackingMatrix.get(patientId);
+        if (!current) return;
+
+        // Normalize empty string to null
+        const normalizedValue = value?.trim() || null;
+
+        // Skip if no change
+        if (current.assignedMd === normalizedValue) return;
+
+        // 1. OPTIMISTIC UPDATE
+        setTrackingMatrix(prev => {
+            const updated = new Map(prev);
+            updated.set(patientId, {
+                ...current,
+                assignedMd: normalizedValue
+            });
+            return updated;
+        });
+
+        try {
+            // 2. PERSIST TO DATABASE
+            const result = await api.updateAssignedMd(patientId, dateStr, normalizedValue);
+
+            // 3. Update recordId if new record was created
+            if (!current.recordId) {
+                setTrackingMatrix(prev => {
+                    const updated = new Map(prev);
+                    const existing = updated.get(patientId);
+                    if (existing) {
+                        updated.set(patientId, {
+                            ...existing,
+                            recordId: result.id
+                        });
+                    }
+                    return updated;
+                });
+            }
+        } catch (err) {
+            console.error('[useEvosBh] updateAssignedMd error:', err);
+            // 4. ROLLBACK ON ERROR
+            setTrackingMatrix(prev => {
+                const updated = new Map(prev);
+                updated.set(patientId, current);
+                return updated;
+            });
+        }
+    }, [trackingMatrix, dateStr]);
+
+    /**
      * Main effect: Fetch data and subscribe to Realtime
      */
     useEffect(() => {
@@ -202,7 +261,8 @@ export const useEvosBh = (
                 {
                     event: 'INSERT',
                     schema: 'public',
-                    table: 'daily_tracking'
+                    table: 'daily_tracking',
+                    filter: `tracking_date=eq.${dateStr}`
                 },
                 (payload) => {
                     const newRecord = payload.new as SupabaseDailyTracking;
@@ -229,6 +289,7 @@ export const useEvosBh = (
                             patientId: newRecord.patient_id,
                             evosDone: newRecord.evos_done,
                             bhDone: newRecord.bh_done,
+                            assignedMd: newRecord.assigned_md,
                             recordId: newRecord.id
                         });
                         return updated;
@@ -241,7 +302,8 @@ export const useEvosBh = (
                 {
                     event: 'UPDATE',
                     schema: 'public',
-                    table: 'daily_tracking'
+                    table: 'daily_tracking',
+                    filter: `tracking_date=eq.${dateStr}`
                 },
                 (payload) => {
                     const updatedRecord = payload.new as SupabaseDailyTracking;
@@ -269,7 +331,8 @@ export const useEvosBh = (
                         // Prevent unnecessary updates (from own optimistic update echo)
                         if (existing &&
                             existing.evosDone === updatedRecord.evos_done &&
-                            existing.bhDone === updatedRecord.bh_done) {
+                            existing.bhDone === updatedRecord.bh_done &&
+                            existing.assignedMd === updatedRecord.assigned_md) {
                             console.log('[EvosBh Realtime] Skipping - no change detected');
                             return prev;
                         }
@@ -278,6 +341,7 @@ export const useEvosBh = (
                             patientId: updatedRecord.patient_id,
                             evosDone: updatedRecord.evos_done,
                             bhDone: updatedRecord.bh_done,
+                            assignedMd: updatedRecord.assigned_md,
                             recordId: updatedRecord.id
                         });
                         return updated;
@@ -290,7 +354,8 @@ export const useEvosBh = (
                 {
                     event: 'DELETE',
                     schema: 'public',
-                    table: 'daily_tracking'
+                    table: 'daily_tracking',
+                    filter: `tracking_date=eq.${dateStr}`
                 },
                 (payload) => {
                     const deletedPatientId = payload.old?.patient_id as string;
@@ -306,6 +371,7 @@ export const useEvosBh = (
                                     patientId: deletedPatientId,
                                     evosDone: false,
                                     bhDone: false,
+                                    assignedMd: null,
                                     recordId: null
                                 });
                             }
@@ -355,6 +421,7 @@ export const useEvosBh = (
                             patientId: pid,
                             evosDone: false,
                             bhDone: false,
+                            assignedMd: null,
                             recordId: null
                         });
                         changed = true;
@@ -406,6 +473,7 @@ export const useEvosBh = (
         loading,
         error,
         toggleField,
+        updateAssignedMd,
         refresh: fetchTracking,
         stats,
         getPatientTracking

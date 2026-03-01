@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { useEvosBh } from '../hooks/useEvosBh';
 
@@ -11,11 +11,44 @@ const EvosBhTracker: React.FC<EvosBhTrackerProps> = ({ patients, selectedDate })
     const { activeWard } = useAppContext();
     const patientIds = useMemo(() => patients.map(p => p.id || p.patientId), [patients]);
 
-    const { toggleField, stats, getPatientTracking } = useEvosBh(
+    const { toggleField, updateAssignedMd, stats, getPatientTracking } = useEvosBh(
         selectedDate,
         activeWard?.id || null,
         patientIds
     );
+
+    // Local state for ENCARGADO inputs (prevents network spam during typing)
+    const [localAssignedMd, setLocalAssignedMd] = useState<Map<string, string>>(new Map());
+
+    // Track focused inputs to prevent cursor stealing during Realtime updates
+    const [focusedInputs, setFocusedInputs] = useState<Set<string>>(new Set());
+
+    // Sync local state with tracking data (Focus-Aware to prevent cursor stealing)
+    useEffect(() => {
+        setLocalAssignedMd(prev => {
+            const updated = new Map(prev);
+            let hasChanges = false;
+
+            patients.forEach(patient => {
+                const pid = patient.id || patient.patientId;
+                const tracking = getPatientTracking(pid);
+                const serverValue = tracking?.assignedMd || '';
+
+                // PROTECTION: Skip update if input is currently focused
+                if (focusedInputs.has(pid)) {
+                    return; // Don't overwrite while user is typing
+                }
+
+                // Only update if value actually differs
+                if (updated.get(pid) !== serverValue) {
+                    updated.set(pid, serverValue);
+                    hasChanges = true;
+                }
+            });
+
+            return hasChanges ? updated : prev;
+        });
+    }, [selectedDate, patients, getPatientTracking, focusedInputs]);
 
     // SVG circle calculations for compact mobile cards
     const mobileRadius = 24;
@@ -157,11 +190,35 @@ const EvosBhTracker: React.FC<EvosBhTrackerProps> = ({ patients, selectedDate })
                                         </button>
                                     </div>
 
-                                    {/* Encargado - Editable Input */}
+                                    {/* Encargado - Focus-Protected Input with onBlur persistence */}
                                     <div className="flex justify-center">
                                         <input
                                             type="text"
                                             placeholder="Dr. / Dra."
+                                            value={localAssignedMd.get(pid) || ''}
+                                            onFocus={() => {
+                                                // Mark input as focused to prevent Realtime overwrites
+                                                setFocusedInputs(prev => new Set(prev).add(pid));
+                                            }}
+                                            onChange={(e) => {
+                                                // Update local state only (no network call)
+                                                setLocalAssignedMd(prev => {
+                                                    const updated = new Map(prev);
+                                                    updated.set(pid, e.target.value);
+                                                    return updated;
+                                                });
+                                            }}
+                                            onBlur={() => {
+                                                // 1. Remove from focused set (allow future Realtime syncs)
+                                                setFocusedInputs(prev => {
+                                                    const updated = new Set(prev);
+                                                    updated.delete(pid);
+                                                    return updated;
+                                                });
+                                                // 2. Persist to database
+                                                const currentValue = localAssignedMd.get(pid) || '';
+                                                updateAssignedMd(pid, currentValue);
+                                            }}
                                             className="w-full min-w-[100px] md:min-w-[140px] border border-slate-200 bg-white rounded-md px-2 md:px-3 py-1.5 text-xs md:text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2985a3]/30 focus:border-[#2985a3] transition-colors"
                                         />
                                     </div>

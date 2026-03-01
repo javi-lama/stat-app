@@ -33,6 +33,7 @@ export interface SupabaseDailyTracking {
     tracking_date: string; // YYYY-MM-DD (DATE type returns as string)
     evos_done: boolean;
     bh_done: boolean;
+    assigned_md: string | null; // Responsible physician for this date
     updated_at: string;
 }
 
@@ -577,6 +578,36 @@ export const api = {
 
         if (error) {
             console.error('Error toggling tracking:', error);
+            throw error;
+        }
+
+        return data as SupabaseDailyTracking;
+    },
+
+    /**
+     * Update assigned_md for a patient on a specific date.
+     * Uses UPSERT to handle both new and existing records.
+     */
+    async updateAssignedMd(
+        patientId: string,
+        dateStr: string,
+        assignedMd: string | null
+    ): Promise<SupabaseDailyTracking> {
+        const { data, error } = await supabase
+            .from('daily_tracking')
+            .upsert({
+                patient_id: patientId,
+                tracking_date: dateStr,
+                assigned_md: assignedMd
+            }, {
+                onConflict: 'patient_id,tracking_date',
+                ignoreDuplicates: false
+            })
+            .select()
+            .single();
+
+        if (error) {
+            console.error('[API] updateAssignedMd error:', error);
             throw error;
         }
 
