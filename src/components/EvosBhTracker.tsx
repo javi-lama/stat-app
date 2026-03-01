@@ -95,15 +95,15 @@ const EvosBhTracker: React.FC<EvosBhTrackerProps> = ({ patients, selectedDate })
             <div className="flex flex-col xl:flex-row gap-6">
 
                 {/* Table Area - grows organically (NO h-full, NO overflow-y-auto) */}
-                <div className="flex-1 bg-white rounded-xl shadow-sm border border-border-light">
+                <div className="flex-1 bg-white rounded-xl shadow-sm border border-border-light overflow-hidden">
 
                     {/* Table Header Row */}
-                    <div className="grid grid-cols-[60px_80px_80px_1fr] md:grid-cols-[80px_1fr_100px_100px_160px] items-center px-4 py-3 bg-slate-50 border-b border-border-light text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-wider">
-                        <div className="text-center">Cama</div>
+                    <div className="grid grid-cols-[60px_80px_80px_1fr] md:grid-cols-[80px_1fr_130px_130px_160px] items-center px-4 py-3 bg-slate-50 border-b border-border-light text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        <div className="text-center md:whitespace-nowrap">Cama</div>
                         <div className="hidden md:block">Diagnóstico</div>
-                        <div className="text-center">Balance en HC</div>
-                        <div className="text-center">Evolución en HC</div>
-                        <div className="text-center">Encargado</div>
+                        <div className="text-center md:whitespace-nowrap">Balance en HC</div>
+                        <div className="text-center md:whitespace-nowrap">Evolución en HC</div>
+                        <div className="text-center md:whitespace-nowrap">Encargado</div>
                     </div>
 
                     {/* Patient Rows */}
@@ -115,15 +115,15 @@ const EvosBhTracker: React.FC<EvosBhTrackerProps> = ({ patients, selectedDate })
                             return (
                                 <div
                                     key={pid}
-                                    className="grid grid-cols-[60px_80px_80px_1fr] md:grid-cols-[80px_1fr_100px_100px_160px] items-center px-4 py-3 md:py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors"
+                                    className="grid grid-cols-[60px_80px_80px_1fr] md:grid-cols-[80px_1fr_130px_130px_160px] items-start px-4 py-3 md:py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors"
                                 >
                                     {/* Cama */}
-                                    <div className="text-center font-bold text-slate-800 text-sm">
+                                    <div className="text-center font-bold text-slate-800 text-base self-center">
                                         {patient.bed_number || patient.bedNumber}
                                     </div>
 
-                                    {/* Diagnóstico - Hidden on mobile */}
-                                    <div className="hidden md:block font-medium text-sm text-slate-700 pr-4 max-w-xs truncate">
+                                    {/* Diagnóstico - Hidden on mobile, wraps naturally */}
+                                    <div className="hidden md:block font-medium text-base text-slate-700 pr-4 whitespace-normal break-words self-center">
                                         {patient.diagnosis || "Sin diagnóstico"}
                                     </div>
 
