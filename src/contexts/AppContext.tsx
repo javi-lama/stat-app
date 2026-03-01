@@ -12,6 +12,7 @@ export interface AppContextType {
     recentWards: Ward[];
     isAuthLoading: boolean;
     setWard: (ward: Ward) => void;
+    clearActiveWard: () => void;
 }
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -36,6 +37,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             localStorage.setItem('stat_recent_wards', JSON.stringify(updated));
             return updated;
         });
+    };
+
+    const clearActiveWard = () => {
+        setActiveWard(null);
+        localStorage.removeItem('stat_active_ward_id');
+        // Mantener stat_recent_wards para quick-access en lobby
     };
 
     useEffect(() => {
@@ -135,7 +142,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             activeWard,
             recentWards,
             isAuthLoading,
-            setWard
+            setWard,
+            clearActiveWard
         }}>
             {children}
         </AppContext.Provider>
