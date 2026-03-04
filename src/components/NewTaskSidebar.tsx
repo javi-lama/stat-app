@@ -119,7 +119,11 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
     };
 
     return (
-        <div className="flex flex-col h-full bg-surface-light border-l border-border-light shadow-xl relative">
+        <div className={`flex flex-col h-full border-l shadow-xl relative transition-colors duration-300 ${
+            isToday
+                ? 'bg-surface-light border-border-light'
+                : 'bg-gradient-to-b from-amber-50/80 to-amber-50/40 border-amber-200'
+        }`}>
             <div className="p-6 border-b border-gray-200">
                 <h2 className="text-[#101719] text-xl font-bold leading-tight mb-1">Añadir Tarea</h2>
                 <p className="text-sm text-gray-500">Asignar tareas rápidamente.</p>
@@ -127,11 +131,18 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
 
             {/* Context Warning Banner */}
             {!isToday && (
-                <div className="bg-amber-100 px-6 py-2 border-b border-amber-200 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-amber-700 text-sm">calendar_month</span>
-                    <span className="text-xs font-bold text-amber-800">
-                        Editando para: {formatDateForUI(selectedDate)}
-                    </span>
+                <div className="bg-amber-100/80 px-6 py-3 border-b-2 border-amber-300 flex items-center gap-3">
+                    <div className="bg-amber-200 rounded-full p-2 animate-pulse">
+                        <span className="material-symbols-outlined text-amber-700 text-base">calendar_month</span>
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-[10px] font-medium text-amber-600 uppercase tracking-wider">
+                            Creando para:
+                        </span>
+                        <span className="text-sm font-bold text-amber-900">
+                            {formatDateForUI(selectedDate)}
+                        </span>
+                    </div>
                 </div>
             )}
 
@@ -143,7 +154,7 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
                         <div className="relative">
                             <select
                                 {...register('patient_id')}
-                                className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3 text-sm font-medium focus:ring-1 focus:ring-primary focus:border-primary outline-none cursor-pointer text-gray-900 appearance-none"
+                                className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3 text-sm font-medium focus:ring-1 focus:ring-primary focus:border-primary outline-none cursor-pointer text-gray-900 appearance-none hover:bg-gray-100 hover:border-gray-300 transition-colors"
                             >
                                 <option value="">Seleccionar cama...</option>
                                 {patients.map(p => (
@@ -175,7 +186,7 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
                                         value={opt.value}
                                         className="peer sr-only"
                                     />
-                                    <span className="px-3 py-1.5 rounded-full border border-gray-200 bg-white text-xs font-medium text-gray-700 peer-checked:bg-primary peer-checked:text-white peer-checked:border-primary transition-all">
+                                    <span className="px-3 py-1.5 rounded-full border border-gray-200 bg-white text-xs font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-900 peer-checked:bg-primary peer-checked:text-white peer-checked:border-primary transition-all">
                                         {opt.label}
                                     </span>
                                 </label>
@@ -273,13 +284,17 @@ const NewTaskSidebar: React.FC<NewTaskSidebarProps> = ({ patients, onTaskCreated
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="bg-primary hover:bg-primary-hover disabled:opacity-50 text-white text-sm font-bold px-6 py-2.5 rounded-lg shadow-sm shadow-primary/30 transition-all flex items-center gap-2"
+                                className={`disabled:opacity-50 text-white text-sm font-bold px-6 py-2.5 rounded-lg shadow-sm transition-all flex items-center gap-2 ${
+                                    isToday
+                                        ? 'bg-primary hover:bg-primary-hover shadow-primary/30'
+                                        : 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/30'
+                                }`}
                             >
                                 {isSubmitting ? (
                                     <span>Guardando...</span>
                                 ) : (
                                     <>
-                                        <span>Aceptar</span>
+                                        <span>{isToday ? 'Aceptar' : `Guardar ${selectedDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}`}</span>
                                         <span className="material-symbols-outlined text-sm">arrow_forward</span>
                                     </>
                                 )}
