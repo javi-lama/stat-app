@@ -8,7 +8,7 @@ import { generateHandoffText } from '../lib/handoffGenerator';
 import { toast } from 'sonner';
 import { useAppContext } from '../contexts/AppContext';
 
-import { formatDateForUI } from '../lib/dateUtils';
+import { formatDateForUI, formatDateForDB } from '../lib/dateUtils';
 
 interface DashboardContextType {
     patients: (Patient & { tasks: PatientTask[] })[];
@@ -127,9 +127,8 @@ const WardDashboard: React.FC = () => {
         if (!confirm(`¿Seguro que deseas BORRAR TODAS LAS TAREAS para el ${dateStr}? Esto no se puede deshacer.`)) return;
 
         try {
-            // Convert to DB format YYYY-MM-DD
-            const offsetDate = new Date(selectedDate.getTime() - (selectedDate.getTimezoneOffset() * 60000));
-            const dbDate = offsetDate.toISOString().split('T')[0];
+            // Convert to DB format YYYY-MM-DD (timezone-safe)
+            const dbDate = formatDateForDB(selectedDate);
 
             // Multi-Tenant: Pass wardId for ward-scoped deletion
             const deletedIds = await api.clearTasksForDate(dbDate, activeWard.id);

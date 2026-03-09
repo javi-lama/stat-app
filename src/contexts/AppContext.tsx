@@ -134,6 +134,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         };
     }, []);
 
+    // Daily Maintenance: Archive old tasks + health check (runs once per day)
+    useEffect(() => {
+        if (session && activeWard) {
+            api.runMaintenanceIfNeeded();
+        }
+    }, [session, activeWard]);
+
     return (
         <AppContext.Provider value={{
             session,

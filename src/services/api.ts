@@ -86,7 +86,7 @@ export const api = {
         // 4. Map Tasks to Patients (Client-Side Date Filtering)
         const patientsWithTasks = patients?.map(patient => {
             const patientTasks = tasksRaw.filter((t: SupabaseTask) => {
-                const isActiveDate = (t.due_date ? String(t.due_date).substring(0, 10) : formatDateForDB(new Date(t.created_at))) === dateStr;
+                const isActiveDate = (t.due_date ? String(t.due_date).substring(0, 10) : String(t.created_at).substring(0, 10)) === dateStr;
                 return t.patient_id === patient.id && isActiveDate;
             }) || [];
 
@@ -145,7 +145,7 @@ export const api = {
                 type: finalType,
                 steps: t.steps || [],
                 created_at: t.created_at,
-                task_date: t.due_date || formatDateForDB(new Date(t.created_at))
+                task_date: t.due_date ? String(t.due_date).substring(0, 10) : String(t.created_at).substring(0, 10)
             };
         });
 
@@ -248,7 +248,7 @@ export const api = {
             type: payload.category as PatientTask['type'], // Use original category
             steps: data.steps,
             created_at: data.created_at,
-            task_date: data.due_date || formatDateForDB(new Date(data.created_at))
+            task_date: data.due_date ? String(data.due_date).substring(0, 10) : String(data.created_at).substring(0, 10)
         };
     },
 
@@ -287,13 +287,13 @@ export const api = {
 
         // Filter for Yesterday (Pending)
         const pendingRawYesterday = allTasksRaw.filter((t: SupabaseTask) => {
-            const tDate = t.due_date ? String(t.due_date).substring(0, 10) : formatDateForDB(new Date(t.created_at));
+            const tDate = t.due_date ? String(t.due_date).substring(0, 10) : String(t.created_at).substring(0, 10);
             return tDate === yesterdayStr && !t.is_completed;
         });
 
         // Filter for Today (All)
         const allRawToday = allTasksRaw.filter((t: SupabaseTask) => {
-            const tDate = t.due_date ? String(t.due_date).substring(0, 10) : formatDateForDB(new Date(t.created_at));
+            const tDate = t.due_date ? String(t.due_date).substring(0, 10) : String(t.created_at).substring(0, 10);
             return tDate === targetDateStr;
         });
 
@@ -427,35 +427,52 @@ export const api = {
 
         const ids = tasksToDelete.map((t: any) => t.id);
 
-        // 2. Perform Soft Delete
-        const { error } = await supabase
-            .from('tasks')
-            .update({ deleted_at: new Date().toISOString() })
-            .in('id', ids);
+        // 2. Perform Soft Delete with BATCHING
+        // Supabase REST API has ~8KB URL limit, 50 UUIDs per batch is safe
+        const BATCH_SIZE = 50;
+        const timestamp = new Date().toISOString();
 
-        if (error) {
-            console.error('Error clearing tasks for date:', error);
-            throw error;
+        for (let i = 0; i < ids.length; i += BATCH_SIZE) {
+            const batch = ids.slice(i, i + BATCH_SIZE);
+            const { error } = await supabase
+                .from('tasks')
+                .update({ deleted_at: timestamp })
+                .in('id', batch);
+
+            if (error) {
+                console.error(`[API] Error clearing batch ${Math.floor(i / BATCH_SIZE) + 1}:`, error);
+                throw error;
+            }
         }
 
+        console.log(`[API] Cleared ${ids.length} tasks in ${Math.ceil(ids.length / BATCH_SIZE)} batches`);
         return ids;
     },
 
     /**
      * Restore Tasks: Undoes soft delete for given IDs.
+     * Uses batching to avoid Supabase URL length limit.
      */
     async restoreTasks(ids: string[]): Promise<void> {
         if (!ids || ids.length === 0) return;
 
-        const { error } = await supabase
-            .from('tasks')
-            .update({ deleted_at: null })
-            .in('id', ids);
+        // BATCHING: Same pattern as clearTasksForDate
+        const BATCH_SIZE = 50;
 
-        if (error) {
-            console.error('Error restoring tasks:', error);
-            throw error;
+        for (let i = 0; i < ids.length; i += BATCH_SIZE) {
+            const batch = ids.slice(i, i + BATCH_SIZE);
+            const { error } = await supabase
+                .from('tasks')
+                .update({ deleted_at: null })
+                .in('id', batch);
+
+            if (error) {
+                console.error(`[API] Error restoring batch ${Math.floor(i / BATCH_SIZE) + 1}:`, error);
+                throw error;
+            }
         }
+
+        console.log(`[API] Restored ${ids.length} tasks in ${Math.ceil(ids.length / BATCH_SIZE)} batches`);
     },
 
     /**
@@ -612,5 +629,53 @@ export const api = {
         }
 
         return data as SupabaseDailyTracking;
+    },
+
+    // ============================================================
+    // MAINTENANCE & DATA HYGIENE
+    // ============================================================
+
+    /**
+     * Lazy Cleanup: Runs daily maintenance tasks (archiving + health check).
+     * Uses localStorage to ensure it only runs once per day per browser.
+     * Called from AppContext on session initialization.
+     */
+    async runMaintenanceIfNeeded(): Promise<void> {
+        const STORAGE_KEY = 'stat_last_maintenance';
+        const lastRun = localStorage.getItem(STORAGE_KEY);
+        const today = new Date().toISOString().substring(0, 10);
+
+        // Only execute once per day
+        if (lastRun === today) {
+            return;
+        }
+
+        try {
+            // Run archival function (moves old tasks to archive)
+            const { data: archivedCount, error: archiveError } = await supabase
+                .rpc('archive_old_tasks');
+
+            if (archiveError) {
+                console.warn('[Maintenance] Archive function error:', archiveError);
+            } else if (archivedCount > 0) {
+                console.log(`[Maintenance] Archived ${archivedCount} old tasks`);
+            }
+
+            // Run health check (creates alert if task count too high)
+            const { error: healthError } = await supabase
+                .rpc('check_task_health');
+
+            if (healthError) {
+                console.warn('[Maintenance] Health check error:', healthError);
+            }
+
+            // Mark as completed for today
+            localStorage.setItem(STORAGE_KEY, today);
+            console.log('[Maintenance] Daily cleanup completed');
+
+        } catch (err) {
+            console.warn('[Maintenance] Cleanup failed:', err);
+            // Don't throw - maintenance failure shouldn't block app usage
+        }
     }
 };

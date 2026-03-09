@@ -19,10 +19,17 @@ export const useRealtimeCensus = (selectedDate: Date, wardId: string | null) => 
     // useRef maintains a mutable reference that always points to current value
     const patientsRef = useRef<PatientCardProps[]>([]);
 
-    // Keep ref in sync with state
+    // ANTI-STALE CLOSURE: Track current date for task date filtering
+    const selectedDateRef = useRef<Date>(selectedDate);
+
+    // Keep refs in sync with state
     useEffect(() => {
         patientsRef.current = patients;
     }, [patients]);
+
+    useEffect(() => {
+        selectedDateRef.current = selectedDate;
+    }, [selectedDate]);
 
     const fetchCensus = useCallback(async () => {
         // EARLY RETURN: No wardId means no data to fetch
@@ -58,14 +65,20 @@ export const useRealtimeCensus = (selectedDate: Date, wardId: string | null) => 
             return;
         }
 
+        // STRICTMODE GUARD: Track if effect is still active
+        // Prevents race conditions during double-mount in development
+        let isActive = true;
+
         // 1. Initial Fetch
         fetchCensus();
 
         // 2. Realtime Subscription with Ward Scoping
         console.log('[Realtime] Initializing ward-scoped subscription:', wardId);
 
-        // Channel unique per WARD + DATE (prevents cross-ward data leakage)
-        const channelName = `realtime:census:${wardId}:${formatDateForDB(selectedDate)}`;
+        // UNIQUE CHANNEL ID: Previene colisiones en StrictMode double-mount
+        // Cada ejecución del effect obtiene su propio canal con ID único
+        const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        const channelName = `realtime:census:${wardId}:${formatDateForDB(selectedDate)}:${uniqueId}`;
 
         const channel = api.supabase
             .channel(channelName)
@@ -80,6 +93,7 @@ export const useRealtimeCensus = (selectedDate: Date, wardId: string | null) => 
                     filter: `ward_id=eq.${wardId}` // NATIVE FILTER
                 },
                 (payload) => {
+                    if (!isActive) return; // STRICTMODE GUARD
                     console.log('[Realtime] Patient change (ward-filtered):', payload);
                     // For patient changes (diagnosis, bed number, etc.), do full refetch
                     fetchCensus();
@@ -94,6 +108,7 @@ export const useRealtimeCensus = (selectedDate: Date, wardId: string | null) => 
                     table: 'tasks'
                 },
                 (payload) => {
+                    if (!isActive) return; // STRICTMODE GUARD
                     const newTask = payload.new as any;
                     console.log('[Realtime] INSERT event (tasks):', newTask.id);
 
@@ -107,6 +122,17 @@ export const useRealtimeCensus = (selectedDate: Date, wardId: string | null) => 
                     if (!belongsToWard) {
                         console.log('[Realtime] Task rejected - patient not in ward:', newTask.patient_id);
                         return; // Silently ignore tasks for other wards
+                    }
+
+                    // DATE FILTER: Only process tasks for the currently viewed date
+                    const taskDateStr = newTask.due_date
+                        ? String(newTask.due_date).substring(0, 10)
+                        : String(newTask.created_at).substring(0, 10);
+                    const currentDateStr = formatDateForDB(selectedDateRef.current);
+
+                    if (taskDateStr !== currentDateStr) {
+                        console.log('[Realtime] Task ignored - date mismatch:', taskDateStr, 'vs', currentDateStr);
+                        return;
                     }
 
                     // STATE RECONCILIATION: Merge new task into state
@@ -156,6 +182,7 @@ export const useRealtimeCensus = (selectedDate: Date, wardId: string | null) => 
                     table: 'tasks'
                 },
                 (payload) => {
+                    if (!isActive) return; // STRICTMODE GUARD
                     const updatedTask = payload.new as any;
                     console.log('[Realtime] UPDATE event (tasks):', updatedTask.id);
 
@@ -167,6 +194,17 @@ export const useRealtimeCensus = (selectedDate: Date, wardId: string | null) => 
 
                     if (!belongsToWard) {
                         return; // Ignore updates for other wards
+                    }
+
+                    // DATE FILTER: Only process updates for currently viewed date
+                    const taskDateStr = updatedTask.due_date
+                        ? String(updatedTask.due_date).substring(0, 10)
+                        : String(updatedTask.created_at).substring(0, 10);
+                    const currentDateStr = formatDateForDB(selectedDateRef.current);
+
+                    if (taskDateStr !== currentDateStr) {
+                        console.log('[Realtime] Update ignored - date mismatch');
+                        return;
                     }
 
                     // Soft Delete Detection
@@ -209,6 +247,7 @@ export const useRealtimeCensus = (selectedDate: Date, wardId: string | null) => 
                     table: 'tasks'
                 },
                 (payload) => {
+                    if (!isActive) return; // STRICTMODE GUARD
                     const deletedTaskId = payload.old.id as string;
                     console.log('[Realtime] DELETE event (tasks):', deletedTaskId);
 
@@ -225,6 +264,7 @@ export const useRealtimeCensus = (selectedDate: Date, wardId: string | null) => 
                 }
             )
             .subscribe((status) => {
+                if (!isActive) return; // STRICTMODE GUARD
                 console.log(`[Realtime] Subscription status (${channelName}):`, status);
                 if (status === 'SUBSCRIBED') {
                     console.log('[Realtime] Connected - Ward-scoped updates active');
@@ -240,13 +280,21 @@ export const useRealtimeCensus = (selectedDate: Date, wardId: string | null) => 
                 }
             });
 
-        // 3. ROBUST CLEANUP: unsubscribe() then removeChannel()
-        // Prevents memory leaks from ghost channels
+        // 3. STRICTMODE-SAFE CLEANUP
+        // Async cleanup - seguro porque channelName es único per effect
         return () => {
             console.log('[Realtime] Cleaning up channel:', channelName);
-            channel.unsubscribe().then(() => {
-                api.supabase.removeChannel(channel);
-            });
+            isActive = false; // Mark as inactive FIRST
+
+            // Async cleanup con catch - no hay race condition porque cada canal es único
+            channel.unsubscribe()
+                .then(() => {
+                    api.supabase.removeChannel(channel);
+                })
+                .catch((err) => {
+                    console.warn('[Realtime] Cleanup warning:', err);
+                    api.supabase.removeChannel(channel);
+                });
         };
     }, [selectedDate, wardId]); // Dependencies: date AND ward
 

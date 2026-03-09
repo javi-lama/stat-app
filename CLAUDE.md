@@ -94,6 +94,21 @@ src/
 - `daily_tracking` table: unique on (patient_id, tracking_date)
 - toggleTracking() uses UPSERT - creates if not exists, updates if exists
 
+### 6. Batching for Bulk Operations
+
+- Supabase REST API has ~8KB URL limit
+- `.in('id', ids)` with 50+ UUIDs exceeds limit → 400 Bad Request
+- Solution: Batch operations in chunks of 50 IDs
+- Applied to: `clearTasksForDate()`, `restoreTasks()`
+
+### 7. Data Hygiene System (Lazy Cleanup)
+
+- **Daily maintenance** runs on first app load per day (localStorage guard)
+- `archive_old_tasks()` - Moves completed tasks >30 days to `tasks_archive`
+- `check_task_health()` - Creates alert if active tasks >5000
+- `validate_task_date()` - Trigger rejects dates >1 year past/future
+- Called from `AppContext.tsx` via `api.runMaintenanceIfNeeded()`
+
 ## Database Schema (Supabase)
 
 ### Core Tables
@@ -103,6 +118,18 @@ src/
 - **daily_tracking** - patient_id, tracking_date, evos_done, bh_done, assigned_md
 - **profiles** - user profile linked to auth
 - **wards** - hospital departments/services
+
+### System Tables (Data Hygiene)
+
+- **tasks_archive** - Archived tasks (>30 days completed or >7 days deleted)
+- **system_alerts** - Monitoring alerts (task_count_high, etc.)
+- **v_system_health** - View: active_tasks, archived_tasks, pending_alerts
+
+### PostgreSQL Functions (RPC)
+
+- `archive_old_tasks()` - Returns count of archived tasks
+- `check_task_health()` - Creates alert if threshold exceeded
+- `validate_task_date()` - Trigger on tasks INSERT/UPDATE
 
 ### Task Types
 
@@ -189,8 +216,13 @@ User Action → Component → useOptimisticMutations (instant UI)
 
 ## Known Issues / Pending
 
-- **Realtime EVOS/BH:** WebSocket timeout in dev due to React StrictMode double-mount. Production works fine. Fix postponed (ref-based guards planned).
 - **PWA:** Manifest configured but no service worker for offline support.
+
+## Resolved Issues (2026-03-09)
+
+- **Ghost Tasks Bug:** Tasks appearing/disappearing due to old data contamination. Fixed with SQL cleanup + unique channel IDs for StrictMode.
+- **Bulk Delete 400 Error:** URL length exceeded with many tasks. Fixed with batching (50 IDs per request).
+- **Realtime StrictMode:** WebSocket race conditions fixed with unique channel IDs per effect execution.
 
 ## Do NOT
 
@@ -199,3 +231,4 @@ User Action → Component → useOptimisticMutations (instant UI)
 - Use Redux or external state management
 - Create hard deletes - use soft delete pattern
 - Skip wardId validation in API calls
+- Use `.in('id', ids)` with >50 IDs - use batching pattern instead
